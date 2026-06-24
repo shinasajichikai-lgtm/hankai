@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>連絡網 作成ツール</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Hiragino Sans","Meiryo",sans-serif;color:#222;background:#f2f2f0;min-height:100vh;font-size:14px}
+.layout{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:270px;min-width:270px;background:#fff;border-right:1px solid #e0e0dc;display:flex;flex-direction:column;overflow:hidden}
+.main{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar-header{padding:13px 15px 9px;border-bottom:1px solid #eee}
+.sidebar-header h1{font-size:15px;font-weight:700;margin-bottom:1px}
+.sidebar-header p{font-size:11px;color:#999}
+.sidebar-body{padding:11px 14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:9px}
+.sec{font-size:10px;font-weight:700;color:#bbb;letter-spacing:.6px;margin-top:4px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;color:#888}
+.field input[type=text]{font-family:inherit;font-size:13px;border:1px solid #ddd;border-radius:6px;padding:5px 8px;width:100%;color:#222;background:#fff;outline:none}
+.field input:focus{border-color:#777}
+.check-row{display:flex;align-items:center;gap:7px}
+.check-row label{font-size:12px;color:#555}
+.sidebar-actions{padding:11px 14px;border-top:1px solid #eee;display:flex;flex-direction:column;gap:7px}
+.btn-full{width:100%;padding:8px;border-radius:7px;cursor:pointer;font-size:13px;font-family:inherit;border:none;font-weight:600}
+.btn-dark{background:#1a1a1a;color:#fff}.btn-dark:hover{background:#333}
+.btn-light{background:#fff;color:#333;border:1px solid #ccc}.btn-light:hover{background:#f5f5f3}
+.btn-green{background:#1a6e3c;color:#fff}.btn-green:hover{background:#155c32}
+
+/* tree canvas */
+.tree-canvas{background:#fff;border:1px solid #e0e0dc;border-radius:10px;padding:20px;overflow:auto;min-height:280px;position:relative}
+
+/* edit panel */
+.edit-panel{background:#fff;border:1px solid #e0e0dc;border-radius:10px;padding:13px 15px;display:none}
+.edit-panel h3{font-size:13px;font-weight:600;margin-bottom:9px;color:#555}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.edit-btn-row{display:flex;gap:7px;margin-top:10px}
+.btn-sm{padding:6px 13px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;border:none;font-weight:600}
+.btn-save{background:#1a1a1a;color:#fff}.btn-save:hover{background:#333}
+.btn-cancel{background:#fff;color:#666;border:1px solid #ccc}.btn-cancel:hover{background:#f5f5f3}
+
+/* preview */
+.preview-area{background:#fff;border:1px solid #e0e0dc;border-radius:10px;padding:16px 18px;display:none}
+.preview-area.visible{display:block}
+.preview-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.preview-title{font-size:16px;font-weight:700}
+.preview-sub{font-size:13px;color:#555}
+.preview-note{font-size:11px;color:#666;text-align:right;max-width:260px;line-height:1.5}
+
+/* node boxes in editor */
+.node-box{border:1.5px solid #555;border-radius:2px;background:#fff;width:110px;cursor:pointer;position:relative;transition:border-color .12s,box-shadow .12s;user-select:none;text-align:center;padding:4px 6px}
+.node-box:hover{border-color:#111;box-shadow:0 1px 6px rgba(0,0,0,.10)}
+.node-box.selected{border-color:#2563eb;box-shadow:0 0 0 2px #bfdbfe}
+.node-name{font-size:13px;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node-phone{font-size:11px;color:#333;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node-email{font-size:10px;color:#666;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node-empty{font-size:11px;color:#bbb;font-style:italic}
+.node-actions{display:none;position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);white-space:nowrap;z-index:20;gap:3px}
+.node-box:hover .node-actions,.node-box.selected .node-actions{display:flex}
+.nbtn{font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid #ccc;background:#fff;cursor:pointer;color:#555;font-family:inherit}
+.nbtn:hover{background:#f0f0ee;color:#111}
+.nbtn.del{color:#c0392b;border-color:#f5c6cb}.nbtn.del:hover{background:#fff0f0}
+
+/* empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;color:#bbb;gap:8px}
+.empty-state p{font-size:13px}
+.btn-start{background:#1a1a1a;color:#fff;border:none;padding:7px 18px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit}
+.btn-start:hover{background:#333}
+.hint{font-size:11px;color:#bbb;text-align:center}
+
+/* save/load status */
+.status{font-size:11px;color:#999;text-align:center;padding:3px 0}
+
+@media(max-width:700px){
+  .layout{flex-direction:column;height:auto}
+  .sidebar{width:100%;min-width:unset;border-right:none;border-bottom:1px solid #e0e0dc}
+  .main{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h1>連絡網 作成ツール</h1>
+    <p>ツリーを直接編集して連絡網を作成</p>
+  </div>
+  <div class="sidebar-body">
+    <div class="sec">連絡網の情報</div>
+    <div class="field"><label>タイトル</label><input type="text" id="cfg-title" value="電話連絡網" /></div>
+    <div class="field"><label>サブタイトル（年度・班名など）</label><input type="text" id="cfg-sub" value="○○年度 ○○班" /></div>
+    <div class="field"><label>注意書き（右上に表示）</label><input type="text" id="cfg-note" value="※ 相手がお留守の時は次の方に連絡してください。" /></div>
+
+    <div class="sec" style="margin-top:4px">表示項目</div>
+    <div class="check-row"><input type="checkbox" id="cfg-email" onchange="renderEditor()"/><label for="cfg-email">メールアドレスを表示する</label></div>
+
+    <div class="sec" style="margin-top:4px">操作方法</div>
+    <div style="font-size:11px;color:#999;line-height:1.8">
+      ① 「最上位を追加」で一番上を登録<br>
+      ② ノード下の「＋子を追加」で連絡先を追加<br>
+      ③ ノードをクリックして名前・電話番号を編集<br>
+      ④ 「保存」でこのHTMLファイルに書き込み保存<br>
+      ⑤ 「連絡網を生成」で印刷プレビュー
+    </div>
+  </div>
+  <div class="sidebar-actions">
+    <div class="status" id="status-msg"></div>
+    <button class="btn-full btn-green" onclick="saveToFile()">💾 保存（HTMLに書き込み）</button>
+    <button class="btn-full btn-dark" onclick="generatePreview()">連絡網を生成 →</button>
+    <button class="btn-full btn-light" onclick="doPrint()" id="btn-print" style="display:none">🖨 印刷 / PDF保存</button>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <div class="edit-panel" id="edit-panel">
+    <h3 id="edit-title">連絡先を入力</h3>
+    <div class="edit-grid">
+      <div class="field"><label>氏名</label><input type="text" id="edit-name" placeholder="例：山田" /></div>
+      <div class="field"><label>電話番号</label><input type="text" id="edit-phone" placeholder="例：090-0000-0000" /></div>
+    </div>
+    <div class="field" id="email-field" style="margin-top:8px;display:none">
+      <label>メールアドレス</label>
+      <input type="text" id="edit-email" placeholder="例：yamada@example.com" />
+    </div>
+    <div class="edit-btn-row">
+      <button class="btn-sm btn-save" onclick="saveEdit()">保存</button>
+      <button class="btn-sm btn-cancel" onclick="cancelEdit()">キャンセル</button>
+    </div>
+  </div>
+
+  <div class="tree-canvas" id="tree-canvas">
+    <div class="empty-state" id="empty-state">
+      <p>まず最上位の方（班長・会長など）を追加してください</p>
+      <button class="btn-start" onclick="addRoot()">最上位を追加</button>
+    </div>
+    <div id="tree-editor" style="display:none">
+      <div style="text-align:center;margin-bottom:12px">
+        <button class="btn-start" id="add-root-btn" onclick="addRoot()" style="font-size:12px;padding:5px 14px">＋ 最上位を追加（複数可）</button>
+      </div>
+      <div id="tree-render"></div>
+      <div class="hint" style="margin-top:12px">ノードをクリックで編集　｜　「＋子を追加」で連絡先を追加</div>
+    </div>
+  </div>
+
+  <div class="preview-area" id="preview-area">
+    <div class="preview-header">
+      <div><div class="preview-title" id="prev-title"></div><div class="preview-sub" id="prev-sub"></div></div>
+      <div class="preview-note" id="prev-note"></div>
+    </div>
+    <div style="overflow-x:auto" id="prev-svg-wrap"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA  (このブロックはsaveToFile()で書き換える)
+// ═══════════════════════════════════════════════
+var SAVED_DATA = null;
+/* __SAVED_DATA_PLACEHOLDER__ */
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let nodes = [];
+let seq = 0;
+let selectedId = null;
+let editingId = null;
+
+function init(){
+  if(SAVED_DATA){
+    nodes = SAVED_DATA.nodes || [];
+    seq = SAVED_DATA.seq || 0;
+    const t = document.getElementById('cfg-title');
+    const s = document.getElementById('cfg-sub');
+    const n = document.getElementById('cfg-note');
+    const e = document.getElementById('cfg-email');
+    if(SAVED_DATA.title !== undefined) t.value = SAVED_DATA.title;
+    if(SAVED_DATA.sub !== undefined) s.value = SAVED_DATA.sub;
+    if(SAVED_DATA.note !== undefined) n.value = SAVED_DATA.note;
+    if(SAVED_DATA.email !== undefined) e.checked = SAVED_DATA.email;
+    setStatus('前回の保存データを読み込みました');
+  }
+  renderEditor();
+}
+
+// ═══════════════════════════════════════════════
+//  SAVE TO FILE  (File System Access API)
+// ═══════════════════════════════════════════════
+async function saveToFile(){
+  const data = {
+    nodes, seq,
+    title: document.getElementById('cfg-title').value,
+    sub:   document.getElementById('cfg-sub').value,
+    note:  document.getElementById('cfg-note').value,
+    email: document.getElementById('cfg-email').checked
+  };
+  const json = JSON.stringify(data);
+
+  // File System Access API が使えるか試みる
+  if(window.showSaveFilePicker || window.__fileHandle){
+    try {
+      let handle = window.__fileHandle;
+      if(!handle){
+        handle = await window.showSaveFilePicker({
+          suggestedName: 'renrakumo.html',
+          types:[{description:'HTML',accept:{'text/html':['.html']}}]
+        });
+        window.__fileHandle = handle;
+      }
+      // 現在のHTMLを読んでSAVED_DATAブロックを置換
+      const currentHtml = document.documentElement.outerHTML;
+      const placeholder = /var SAVED_DATA = .*?;\s*\/\* __SAVED_DATA_PLACEHOLDER__ \*\//s;
+      const newLine = `var SAVED_DATA = ${json};\n/* __SAVED_DATA_PLACEHOLDER__ */`;
+      const newHtml = currentHtml.replace(placeholder, newLine);
+      const writable = await handle.createWritable();
+      await writable.write('<!DOCTYPE html>\n' + newHtml);
+      await writable.close();
+      setStatus('✓ 保存しました');
+      return;
+    } catch(e){
+      if(e.name === 'AbortError') return;
+      // fallthrough to download
+    }
+  }
+
+  // フォールバック：ダウンロードで保存
+  const currentHtml = document.documentElement.outerHTML;
+  const placeholder = /var SAVED_DATA = .*?;\s*\/\* __SAVED_DATA_PLACEHOLDER__ \*\//s;
+  const newLine = `var SAVED_DATA = ${json};\n/* __SAVED_DATA_PLACEHOLDER__ */`;
+  const newHtml = '<!DOCTYPE html>\n' + currentHtml.replace(placeholder, newLine);
+  const blob = new Blob([newHtml], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'renrakumo.html'; a.click();
+  URL.revokeObjectURL(url);
+  setStatus('✓ ダウンロードして保存しました。次回このファイルを開いてください。');
+}
+
+function setStatus(msg){ document.getElementById('status-msg').textContent = msg; }
+
+// ═══════════════════════════════════════════════
+//  NODE OPERATIONS
+// ═══════════════════════════════════════════════
+function newId(){ return ++seq; }
+
+function addRoot(){
+  const id = newId();
+  nodes.push({id, name:'', phone:'', email:'', parentId:null});
+  renderEditor();
+  openEdit(id, true);
+}
+
+function addChild(parentId){
+  const id = newId();
+  nodes.push({id, name:'', phone:'', email:'', parentId});
+  renderEditor();
+  openEdit(id, false);
+}
+
+function deleteNode(id){
+  function descendants(pid){
+    let d=[];
+    nodes.forEach(n=>{ if(n.parentId===pid){d.push(n.id);d=d.concat(descendants(n.id));} });
+    return d;
+  }
+  const del=[id,...descendants(id)];
+  nodes=nodes.filter(n=>!del.includes(n.id));
+  if(del.includes(selectedId)) selectedId=null;
+  closeEdit();
+  renderEditor();
+}
+
+function openEdit(id, isNew){
+  editingId=id; selectedId=id;
+  const n=nodes.find(x=>x.id===id);
+  document.getElementById('edit-panel').style.display='block';
+  document.getElementById('edit-title').textContent = isNew?'新しい連絡先を入力':'連絡先を編集';
+  document.getElementById('edit-name').value=n.name||'';
+  document.getElementById('edit-phone').value=n.phone||'';
+  document.getElementById('edit-email').value=n.email||'';
+  document.getElementById('email-field').style.display = document.getElementById('cfg-email').checked?'block':'none';
+  document.getElementById('edit-name').focus();
+  renderEditor();
+}
+
+function saveEdit(){
+  if(editingId===null) return;
+  const n=nodes.find(x=>x.id===editingId);
+  n.name=document.getElementById('edit-name').value.trim();
+  n.phone=document.getElementById('edit-phone').value.trim();
+  n.email=document.getElementById('edit-email').value.trim();
+  editingId=null;
+  document.getElementById('edit-panel').style.display='none';
+  renderEditor();
+}
+
+function cancelEdit(){
+  const n=nodes.find(x=>x.id===editingId);
+  if(n&&!n.name&&!n.phone) nodes=nodes.filter(x=>x.id!==editingId);
+  editingId=null; selectedId=null;
+  document.getElementById('edit-panel').style.display='none';
+  renderEditor();
+}
+
+function closeEdit(){
+  editingId=null;
+  document.getElementById('edit-panel').style.display='none';
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&editingId!==null){ saveEdit(); }
+  if(e.key==='Escape'&&editingId!==null){ cancelEdit(); }
+});
+
+// ═══════════════════════════════════════════════
+//  TREE EDITOR RENDER
+// ═══════════════════════════════════════════════
+function buildForest(){
+  const roots=nodes.filter(n=>n.parentId===null);
+  function sub(n){return{node:n,children:nodes.filter(x=>x.parentId===n.id).map(sub)};}
+  return roots.map(sub);
+}
+
+function renderEditor(){
+  const forest=buildForest();
+  const isEmpty=nodes.length===0;
+  document.getElementById('empty-state').style.display=isEmpty?'flex':'none';
+  document.getElementById('tree-editor').style.display=isEmpty?'none':'block';
+  document.getElementById('add-root-btn').style.display=
+    nodes.filter(n=>n.parentId===null).length>0?'none':'inline-block';
+
+  const container=document.getElementById('tree-render');
+  container.innerHTML='';
+  if(forest.length===0) return;
+
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:24px;align-items:flex-start;justify-content:center;flex-wrap:wrap';
+  forest.forEach(t=>wrap.appendChild(makeEditorNode(t)));
+  container.appendChild(wrap);
+}
+
+function makeEditorNode(tree){
+  const n=tree.node;
+  const showEmail=document.getElementById('cfg-email').checked;
+
+  const col=document.createElement('div');
+  col.style.cssText='display:flex;flex-direction:column;align-items:center';
+
+  // box
+  const box=document.createElement('div');
+  box.className='node-box'+(n.id===selectedId?' selected':'');
+  box.onclick=e=>{e.stopPropagation();openEdit(n.id,false);};
+  const inner=document.createElement('div');
+  if(n.name){
+    inner.innerHTML=`<div class="node-name">${esc(n.name)}</div><div class="node-phone">${esc(n.phone||'—')}</div>${showEmail&&n.email?`<div class="node-email">${esc(n.email)}</div>`:''}`;
+  } else {
+    inner.innerHTML=`<div class="node-empty">（未入力）</div>`;
+  }
+  box.appendChild(inner);
+  const acts=document.createElement('div');
+  acts.className='node-actions';
+  acts.innerHTML=`<button class="nbtn del" onclick="event.stopPropagation();deleteNode(${n.id})">削除</button>`;
+  box.appendChild(acts);
+  col.appendChild(box);
+
+  // add-child button
+  const addWrap=document.createElement('div');
+  addWrap.style.cssText='display:flex;flex-direction:column;align-items:center;margin-top:4px';
+  const vline=document.createElement('div');
+  vline.style.cssText='width:1px;height:14px;background:#bbb';
+  addWrap.appendChild(vline);
+  const ab=document.createElement('button');
+  ab.className='nbtn';
+  ab.style.cssText='font-size:10px;padding:2px 7px;background:#f9f9f7';
+  ab.textContent='＋子を追加';
+  ab.onclick=e=>{e.stopPropagation();addChild(n.id);};
+  addWrap.appendChild(ab);
+  col.appendChild(addWrap);
+
+  if(tree.children&&tree.children.length>0){
+    const cWrap=document.createElement('div');
+    cWrap.style.cssText='display:flex;flex-direction:column;align-items:center';
+
+    const vl2=document.createElement('div');
+    vl2.style.cssText='width:1px;height:14px;background:#bbb';
+    cWrap.appendChild(vl2);
+
+    const cRow=document.createElement('div');
+    cRow.style.cssText='display:flex;flex-direction:row;align-items:flex-start;position:relative';
+    tree.children.forEach(child=>{
+      const cCol=document.createElement('div');
+      cCol.style.cssText='display:flex;flex-direction:column;align-items:center;padding:0 10px';
+      const stub=document.createElement('div');
+      stub.style.cssText='width:1px;height:14px;background:#bbb';
+      cCol.appendChild(stub);
+      cCol.appendChild(makeEditorNode(child));
+      cRow.appendChild(cCol);
+    });
+    if(tree.children.length>1){
+      const hbar=document.createElement('div');
+      hbar.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:#bbb';
+      cRow.insertBefore(hbar,cRow.firstChild);
+    }
+    cWrap.appendChild(cRow);
+    col.appendChild(cWrap);
+  }
+  return col;
+}
+
+document.getElementById('tree-canvas').addEventListener('click',()=>{
+  if(editingId!==null) return;
+  selectedId=null; renderEditor();
+});
+
+// ═══════════════════════════════════════════════
+//  SVG PRINT PREVIEW  ― 元画像と同じ縦横線スタイル
+// ═══════════════════════════════════════════════
+const BW=96, BH=48, HGAP=18, VGAP=36;
+
+function treeW(t){ if(!t.children||!t.children.length)return 1; return t.children.reduce((s,c)=>s+treeW(c),0); }
+
+function layoutSVG(tree,depth,offset,all){
+  const w=treeW(tree);
+  tree._x=(offset+w/2)*(BW+HGAP);
+  tree._y=depth*(BH+VGAP)+BH/2+14;
+  all.push(tree);
+  let co=offset;
+  (tree.children||[]).forEach(c=>{layoutSVG(c,depth+1,co,all);co+=treeW(c);});
+}
+
+function generatePreview(){
+  if(nodes.length===0){alert('先にメンバーを追加してください。');return;}
+  const showEmail=document.getElementById('cfg-email').checked;
+  const forest=buildForest();
+
+  let offset=0; const all=[];
+  forest.forEach(t=>{layoutSVG(t,0,offset,all);offset+=treeW(t);});
+
+  const maxX=Math.max(...all.map(t=>t._x));
+  const maxY=Math.max(...all.map(t=>t._y));
+  const svgW=maxX+BW/2+HGAP+16;
+  const svgH=maxY+BH/2+20;
+
+  const lines=[], boxes=[];
+
+  function drawLines(t){
+    if(!t.children||!t.children.length) return;
+    const px=t._x, py=t._y;
+    const midY=py+BH/2 + VGAP/2;   // horizontal bar Y
+
+    if(t.children.length===1){
+      const c=t.children[0];
+      // straight vertical
+      lines.push(`<line x1="${px}" y1="${py+BH/2}" x2="${c._x}" y2="${c._y-BH/2}" stroke="#333" stroke-width="1"/>`);
+    } else {
+      // vertical down from parent to mid
+      lines.push(`<line x1="${px}" y1="${py+BH/2}" x2="${px}" y2="${midY}" stroke="#333" stroke-width="1"/>`);
+      // horizontal bar
+      const leftX=t.children[0]._x;
+      const rightX=t.children[t.children.length-1]._x;
+      lines.push(`<line x1="${leftX}" y1="${midY}" x2="${rightX}" y2="${midY}" stroke="#333" stroke-width="1"/>`);
+      // verticals down to each child
+      t.children.forEach(c=>{
+        lines.push(`<line x1="${c._x}" y1="${midY}" x2="${c._x}" y2="${c._y-BH/2}" stroke="#333" stroke-width="1"/>`);
+      });
+    }
+    t.children.forEach(c=>drawLines(c));
+  }
+
+  forest.forEach(t=>drawLines(t));
+
+  function drawBoxes(t){
+    const n=t.node, bx=t._x-BW/2, by=t._y-BH/2;
+    const cx=t._x;
+    // name line Y
+    const nameY=by + (showEmail&&n.email ? 17 : n.phone ? 19 : 24);
+    let inner=`<text x="${cx}" y="${nameY}" text-anchor="middle" font-size="13" font-weight="700" fill="#111" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`;
+    if(n.phone) inner+=`<text x="${cx}" y="${nameY+15}" text-anchor="middle" font-size="11" fill="#222" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`;
+    if(showEmail&&n.email) inner+=`<text x="${cx}" y="${nameY+28}" text-anchor="middle" font-size="10" fill="#555" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`;
+    boxes.push(`<rect x="${bx}" y="${by}" width="${BW}" height="${BH}" fill="white" stroke="#333" stroke-width="1.5" rx="0"/>${inner}`);
+    (t.children||[]).forEach(c=>drawBoxes(c));
+  }
+  forest.forEach(t=>drawBoxes(t));
+
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="display:block">${lines.join('')}${boxes.join('')}</svg>`;
+
+  document.getElementById('prev-title').textContent=document.getElementById('cfg-title').value;
+  document.getElementById('prev-sub').textContent=document.getElementById('cfg-sub').value;
+  document.getElementById('prev-note').textContent=document.getElementById('cfg-note').value;
+  document.getElementById('prev-svg-wrap').innerHTML=svg;
+  const pa=document.getElementById('preview-area');
+  pa.classList.add('visible');
+  document.getElementById('btn-print').style.display='block';
+  pa.scrollIntoView({behavior:'smooth'});
+}
+
+function doPrint(){
+  const title=esc(document.getElementById('cfg-title').value);
+  const sub=esc(document.getElementById('cfg-sub').value);
+  const note=esc(document.getElementById('cfg-note').value);
+  const svgContent=document.getElementById('prev-svg-wrap').innerHTML;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+body{font-family:"Hiragino Sans","Meiryo",sans-serif;padding:18px;background:#fff}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+h1{font-size:16px;font-weight:700;margin-bottom:2px}
+.sub{font-size:13px;color:#555}
+.note{font-size:11px;color:#555;text-align:right;max-width:280px;line-height:1.6}
+svg{max-width:100%;height:auto}
+@media print{@page{size:A4 landscape;margin:12mm}button{display:none}}
+</style></head><body>
+<div class="hdr"><div><h1>${title}</h1><div class="sub">${sub}</div></div><div class="note">${note}</div></div>
+${svgContent}
+<br><button onclick="window.print()" style="margin-top:10px;padding:7px 18px;font-size:13px;cursor:pointer;font-family:inherit">印刷 / PDF保存</button>
+<script>window.onload=()=>window.print();<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// start
+init();
+</script>
+</body>
+</html>
