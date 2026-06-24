@@ -114,8 +114,6 @@ header p{
 .btn-secondary:hover{ background:#e3d6bf; }
 .btn-ghost{ background:transparent; color:#555; border:1px solid var(--field-border); }
 .btn-ghost:hover{ background:#f3f1ec; }
-.btn-mail{ background:#1a73e8; color:#fff; }
-.btn-mail:hover{ background:#1558b0; }
 
 .btn-mail{ background:#1a73e8; color:#fff; }
 .btn-mail:hover{ background:#1558b0; }
@@ -370,7 +368,7 @@ textarea{ resize:vertical; min-height:64px; }
   width:210mm;
   min-height:297mm;
   margin:0 auto;
-  padding:10mm 12mm 10mm;
+  padding:16mm 12mm 10mm;
   box-shadow:0 3px 14px rgba(0,0,0,.25);
   font-size:12pt;
   color:#111;
@@ -399,7 +397,7 @@ textarea{ resize:vertical; min-height:64px; }
 .sheet table{
   width:100%;
   border-collapse:collapse;
-  margin-bottom:8px;
+  margin-bottom:6px;
 }
 .sheet table.report-table td, .sheet table.report-table th{
   border:1px solid #333;
@@ -412,20 +410,21 @@ textarea{ resize:vertical; min-height:64px; }
   font-weight:700;
   white-space:nowrap;
   width:18%;
+  color:#111;
 }
 .sheet .pre-wrap{ white-space:pre-wrap; line-height:1.5; }
 .sheet td.min-h-topic, .sheet td.min-h-names, .sheet td.min-h-req{
   position:relative;
   overflow:hidden;
 }
-.sheet .min-h-topic{ height:26mm; }
-.sheet .min-h-req{ height:24mm; }
-.sheet .min-h-names{ height:14mm; }
+.sheet .min-h-topic{ height:44mm; }
+.sheet .min-h-req{ height:38mm; }
+.sheet .min-h-names{ height:18mm; }
 .sheet .overflow-badge{
   position:absolute;
   bottom:2px;
   right:4px;
-  font-size:9px;
+  font-size:9pt;
   font-weight:700;
   color:#fff;
   background:var(--danger);
@@ -439,13 +438,13 @@ textarea{ resize:vertical; min-height:64px; }
   display:flex;
   align-items:center;
   gap:6px;
-  margin:10px 0 8px;
+  margin:8px 0 6px;
   font-size:10pt;
-  color:#444;
+  color:#111;
 }
 .sheet .cut-line .dash{
   flex:1;
-  border-top:1px dashed #555;
+  border-top:1px dashed #333;
 }
 .sheet .claim-box{
   border:1px solid #333;
@@ -453,7 +452,11 @@ textarea{ resize:vertical; min-height:64px; }
   font-size:12pt;
 }
 .sheet .claim-line{
-  margin:5px 0;
+  margin:4px 0;
+}
+.sheet .claim-note{
+  font-size:10pt;
+  color:#111;
 }
 .sheet .claim-line-signature{
   text-align:right;
@@ -470,10 +473,11 @@ textarea{ resize:vertical; min-height:64px; }
   border-radius:50%;
   font-size:10pt;
   vertical-align:middle;
+  color:#111;
 }
 .sheet .small-note{
   font-size:9pt;
-  color:#555;
+  color:#111;
   margin-top:4px;
 }
 .sheet .footer-note{
@@ -481,7 +485,7 @@ textarea{ resize:vertical; min-height:64px; }
   bottom:6mm;
   right:12mm;
   font-size:8pt;
-  color:#777;
+  color:#111;
 }
 
 /* ===== 2ページ目（別紙）===== */
@@ -569,7 +573,6 @@ textarea{ resize:vertical; min-height:64px; }
 <div class="toolbar">
   <button class="btn btn-primary" id="btnSave" title="入力データとツール本体を含むHTMLファイルを書き出します。このファイルを開くと続きから編集できます。">💾 入力内容ごとファイルとして保存</button>
   <button class="btn btn-secondary btn-print" id="btnPrint">🖨️ 印刷する</button>
-  <button class="btn btn-mail" id="btnMail" title="入力内容をメール本文にして転送します">📧 メールで転送</button>
   <button class="btn btn-ghost" id="btnReset">🗑️ すべてクリア</button>
   <div class="spacer"></div>
   <div class="status" id="statusMsg"></div>
@@ -787,7 +790,7 @@ textarea{ resize:vertical; min-height:64px; }
             令和　<span class="underline-val" id="p_claim_y">　</span>　年　<span class="underline-val" id="p_claim_m">　</span>　月　<span class="underline-val" id="p_claim_d">　</span>　日　班会運営費を請求します。
           </div>
           <div class="claim-line">
-            班会参加人数（　<span class="underline-val" id="p_claim_count">　</span>　）名分　×220円迄＝　<span class="underline-val" id="p_claim_amount" style="min-width:5em; font-weight:700;">　</span>　円　（※請求金額をお書きください）
+            班会参加人数（　<span class="underline-val" id="p_claim_count">　</span>　）名分　×220円迄＝　<span class="underline-val" id="p_claim_amount" style="min-width:5em; font-weight:700;">　</span>　円　<span class="claim-note">（※請求金額をお書きください）</span>
           </div>
           <div class="claim-line">（1人あたり220円限度額とします。）</div>
           <div class="claim-line claim-line-signature">
@@ -1056,76 +1059,6 @@ textarea{ resize:vertical; min-height:64px; }
       btnTogglePreview.textContent = collapsed ? '👁️ 印刷イメージを表示する' : '🙈 印刷イメージを閉じる';
     });
   }
-
-  // ---- メールで転送（スマホ用） ----
-  function buildMailBody(){
-    const v = id => (el(id) ? el(id).value.trim() : '');
-    const fmt = (label, val) => val ? `${label}：${val}\n` : '';
-    const fmtDate = str => {
-      if(!str) return '';
-      const [y,m,d] = str.split('-');
-      const reiwa = parseInt(y,10) - 2018;
-      return `令和${reiwa}年${parseInt(m,10)}月${parseInt(d,10)}日`;
-    };
-    const meetingWd = v('meetingWeekday') || getWeekday(v('meetingDate'));
-    const meetingDateStr = v('meetingDate') ? `${fmtDate(v('meetingDate'))}（${meetingWd}）` : '';
-    const timeStr = [v('startHour') && v('startMin') ? `${v('startHour')}時${v('startMin')}分` : '',
-                     v('endHour')   && v('endMin')   ? `${v('endHour')}時${v('endMin')}分`   : '']
-                    .filter(Boolean).join('〜');
-    const claimAmt = v('claimAmount') ? `${parseInt(v('claimAmount'),10).toLocaleString()}円` : '';
-    const claimLimit = parseInt(v('attendeeCount'),10) * 220;
-
-    const lines = [
-      `【班会の報告書】`,
-      ``,
-      `■ 基本情報`,
-      fmt('第○班', v('hanNo') ? `第${v('hanNo')}班` : ''),
-      fmt('班長名', v('hanchoName')),
-      fmt('作成日', fmtDate(v('reportDate'))),
-      ``,
-      `■ 班会の開催内容`,
-      fmt('開催日', meetingDateStr),
-      fmt('時間', timeStr),
-      fmt('場所', v('place')),
-      ``,
-      `■ 参加者数`,
-      fmt('班会員数', v('memberHouses') ? `${v('memberHouses')}世帯` : ''),
-      fmt('参加者数', v('attendeeCount') ? `${v('attendeeCount')}名` : ''),
-      fmt('その他参加者', v('otherAttendees')),
-      ``,
-      `■ 主な議題等`,
-      v('topics') || '（未入力）',
-      ``,
-      `■ 参加者名`,
-      v('attendeeNames') || '（未入力）',
-      ``,
-      `■ 自治会への報告および要望事項等`,
-      v('requests') || '（なし）',
-      ``,
-      `■ 班会費の請求`,
-      fmt('請求班', v('claimHanNo') ? `第${v('claimHanNo')}班` : ''),
-      fmt('請求日', fmtDate(v('claimDate'))),
-      fmt('参加人数', v('attendeeCount') ? `${v('attendeeCount')}名` : ''),
-      fmt('請求金額', claimAmt),
-      !isNaN(claimLimit) && claimLimit > 0 ? `（上限目安：${claimLimit.toLocaleString()}円）\n` : '',
-      fmt('班長名（請求欄）', v('claimHanchoName')),
-      ``,
-      `--`,
-      `※ このメールは「班会の報告書 入力支援ツール」から自動生成されました。`,
-    ];
-    return lines.join('');
-  }
-
-  el('btnMail').addEventListener('click', function(){
-    const han = (el('hanNo') ? el('hanNo').value.trim() : '') || '○';
-    const subject = encodeURIComponent(`【班会報告書】第${han}班`);
-    const body    = encodeURIComponent(buildMailBody());
-    // mailtoリンクで既定のメールアプリを開く
-    const mailto = `mailto:?subject=${subject}&body=${body}`;
-    const a = document.createElement('a');
-    a.href = mailto;
-    a.click();
-  });
 
   el('btnSave').addEventListener('click', function(){
     const state = collectState();
