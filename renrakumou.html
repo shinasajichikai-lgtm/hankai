@@ -24,8 +24,12 @@ body{font-family:"Hiragino Sans","Meiryo",sans-serif;color:#222;background:#f2f2
 .sidebar-actions{padding:11px 14px;border-top:1px solid #eee;display:flex;flex-direction:column;gap:7px}
 .btn-full{width:100%;padding:8px;border-radius:7px;cursor:pointer;font-size:13px;font-family:inherit;border:none;font-weight:600}
 .btn-dark{background:#1a1a1a;color:#fff}.btn-dark:hover{background:#333}
+.btn-dark:disabled{background:#ccc;color:#fff;cursor:not-allowed}
+.btn-dark:disabled:hover{background:#ccc}
 .btn-light{background:#fff;color:#333;border:1px solid #ccc}.btn-light:hover{background:#f5f5f3}
 .btn-green{background:#1a6e3c;color:#fff}.btn-green:hover{background:#155c32}
+.btn-green:disabled{background:#ccc;color:#fff;cursor:not-allowed}
+.btn-green:disabled:hover{background:#ccc}
 
 /* tree canvas */
 .tree-canvas{background:#fff;border:1px solid #e0e0dc;border-radius:10px;padding:20px;overflow:auto;min-height:280px;position:relative}
@@ -107,8 +111,8 @@ body{font-family:"Hiragino Sans","Meiryo",sans-serif;color:#222;background:#f2f2
   </div>
   <div class="sidebar-actions">
     <div class="status" id="status-msg"></div>
-    <button class="btn-full btn-green" onclick="saveToFile()">💾 保存（HTMLに書き込み）</button>
-    <button class="btn-full btn-dark" onclick="generatePreview()">連絡網を生成 →</button>
+    <button class="btn-full btn-green" id="btn-save" onclick="saveToFile()" disabled>💾 保存（HTMLに書き込み）</button>
+    <button class="btn-full btn-dark" id="btn-generate" onclick="generatePreview()" disabled>連絡網を生成 →</button>
     <button class="btn-full btn-light" onclick="doPrint()" id="btn-print" style="display:none">🖨 印刷 / PDF保存</button>
   </div>
 </div>
@@ -333,6 +337,11 @@ function renderEditor(){
   document.getElementById('add-root-btn').style.display=
     nodes.filter(n=>n.parentId===null).length>0?'none':'inline-block';
 
+  // ボタンのグレイアウト制御
+  const hasNodes = nodes.length > 0;
+  document.getElementById('btn-save').disabled = !hasNodes;
+  document.getElementById('btn-generate').disabled = !hasNodes;
+
   const container=document.getElementById('tree-render');
   container.innerHTML='';
   if(forest.length===0) return;
@@ -417,9 +426,9 @@ document.getElementById('tree-canvas').addEventListener('click',()=>{
 });
 
 // ═══════════════════════════════════════════════
-//  SVG PRINT PREVIEW  ― 元画像と同じ縦横線スタイル
+//  SVG PRINT PREVIEW  ― 縦横線スタイル＋おしゃれ矩形
 // ═══════════════════════════════════════════════
-const BW=96, BH=48, HGAP=18, VGAP=36;
+const BW=100, BH=52, HGAP=20, VGAP=40;
 
 function treeW(t){ if(!t.children||!t.children.length)return 1; return t.children.reduce((s,c)=>s+treeW(c),0); }
 
@@ -432,61 +441,79 @@ function layoutSVG(tree,depth,offset,all){
   (tree.children||[]).forEach(c=>{layoutSVG(c,depth+1,co,all);co+=treeW(c);});
 }
 
-function generatePreview(){
-  if(nodes.length===0){alert('先にメンバーを追加してください。');return;}
-  const showEmail=document.getElementById('cfg-email').checked;
-  const forest=buildForest();
-
+function buildSVG(forest, showEmail){
   let offset=0; const all=[];
   forest.forEach(t=>{layoutSVG(t,0,offset,all);offset+=treeW(t);});
 
+  if(all.length===0) return {svg:'',contentW:0,contentH:0};
+
   const maxX=Math.max(...all.map(t=>t._x));
   const maxY=Math.max(...all.map(t=>t._y));
-  const svgW=maxX+BW/2+HGAP+16;
-  const svgH=maxY+BH/2+20;
+  const contentW=maxX+BW/2+HGAP/2;
+  const contentH=maxY+BH/2+14;
 
   const lines=[], boxes=[];
+  const lineColor='#8a9bb0';
+  const boxFill='#f4f7fb';
+  const boxStroke='#7a90aa';
+  const accentH=5; // colored top bar height
 
   function drawLines(t){
     if(!t.children||!t.children.length) return;
     const px=t._x, py=t._y;
-    const midY=py+BH/2 + VGAP/2;   // horizontal bar Y
-
+    const midY=py+BH/2+VGAP/2;
     if(t.children.length===1){
       const c=t.children[0];
-      // straight vertical
-      lines.push(`<line x1="${px}" y1="${py+BH/2}" x2="${c._x}" y2="${c._y-BH/2}" stroke="#333" stroke-width="1"/>`);
+      lines.push(`<line x1="${px}" y1="${py+BH/2}" x2="${c._x}" y2="${c._y-BH/2}" stroke="${lineColor}" stroke-width="1.2"/>`);
     } else {
-      // vertical down from parent to mid
-      lines.push(`<line x1="${px}" y1="${py+BH/2}" x2="${px}" y2="${midY}" stroke="#333" stroke-width="1"/>`);
-      // horizontal bar
-      const leftX=t.children[0]._x;
-      const rightX=t.children[t.children.length-1]._x;
-      lines.push(`<line x1="${leftX}" y1="${midY}" x2="${rightX}" y2="${midY}" stroke="#333" stroke-width="1"/>`);
-      // verticals down to each child
+      lines.push(`<line x1="${px}" y1="${py+BH/2}" x2="${px}" y2="${midY}" stroke="${lineColor}" stroke-width="1.2"/>`);
+      const lx=t.children[0]._x, rx=t.children[t.children.length-1]._x;
+      lines.push(`<line x1="${lx}" y1="${midY}" x2="${rx}" y2="${midY}" stroke="${lineColor}" stroke-width="1.2"/>`);
       t.children.forEach(c=>{
-        lines.push(`<line x1="${c._x}" y1="${midY}" x2="${c._x}" y2="${c._y-BH/2}" stroke="#333" stroke-width="1"/>`);
+        lines.push(`<line x1="${c._x}" y1="${midY}" x2="${c._x}" y2="${c._y-BH/2}" stroke="${lineColor}" stroke-width="1.2"/>`);
       });
     }
     t.children.forEach(c=>drawLines(c));
   }
-
   forest.forEach(t=>drawLines(t));
 
   function drawBoxes(t){
-    const n=t.node, bx=t._x-BW/2, by=t._y-BH/2;
-    const cx=t._x;
-    // name line Y
-    const nameY=by + (showEmail&&n.email ? 17 : n.phone ? 19 : 24);
-    let inner=`<text x="${cx}" y="${nameY}" text-anchor="middle" font-size="13" font-weight="700" fill="#111" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`;
-    if(n.phone) inner+=`<text x="${cx}" y="${nameY+15}" text-anchor="middle" font-size="11" fill="#222" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`;
-    if(showEmail&&n.email) inner+=`<text x="${cx}" y="${nameY+28}" text-anchor="middle" font-size="10" fill="#555" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`;
-    boxes.push(`<rect x="${bx}" y="${by}" width="${BW}" height="${BH}" fill="white" stroke="#333" stroke-width="1.5" rx="0"/>${inner}`);
+    const n=t.node;
+    const bx=t._x-BW/2, by=t._y-BH/2, cx=t._x;
+    const r=6; // corner radius
+
+    // shadow (offset rect)
+    boxes.push(`<rect x="${bx+2}" y="${by+2}" width="${BW}" height="${BH}" rx="${r}" fill="#c8d4e3" opacity="0.5"/>`);
+    // main box
+    boxes.push(`<rect x="${bx}" y="${by}" width="${BW}" height="${BH}" rx="${r}" fill="${boxFill}" stroke="${boxStroke}" stroke-width="1"/>`);
+    // accent top bar (clipped to rounded top)
+    boxes.push(`<rect x="${bx}" y="${by}" width="${BW}" height="${accentH+r}" rx="${r}" fill="#5b7ea6"/>`);
+    boxes.push(`<rect x="${bx}" y="${by+accentH}" width="${BW}" height="${r}" fill="#5b7ea6"/>`);
+
+    // text
+    const hasEmail=showEmail&&n.email;
+    const totalLines=1+(n.phone?1:0)+(hasEmail?1:0);
+    const lineH=14;
+    const textBlockH=(totalLines-1)*lineH;
+    const startY=by+accentH + (BH-accentH-textBlockH)/2 + 10;
+
+    boxes.push(`<text x="${cx}" y="${startY}" text-anchor="middle" font-size="13" font-weight="700" fill="#1a2a3a" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`);
+    if(n.phone) boxes.push(`<text x="${cx}" y="${startY+lineH}" text-anchor="middle" font-size="11" fill="#3a4e62" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`);
+    if(hasEmail) boxes.push(`<text x="${cx}" y="${startY+lineH*2}" text-anchor="middle" font-size="10" fill="#5a6e82" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`);
+
     (t.children||[]).forEach(c=>drawBoxes(c));
   }
   forest.forEach(t=>drawBoxes(t));
 
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="display:block">${lines.join('')}${boxes.join('')}</svg>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${contentW}" height="${contentH}" viewBox="0 0 ${contentW} ${contentH}" style="display:block;overflow:visible">${lines.join('')}${boxes.join('')}</svg>`;
+  return {svg, contentW, contentH};
+}
+
+function generatePreview(){
+  if(nodes.length===0){alert('先にメンバーを追加してください。');return;}
+  const showEmail=document.getElementById('cfg-email').checked;
+  const forest=buildForest();
+  const {svg}=buildSVG(forest,showEmail);
 
   document.getElementById('prev-title').textContent=document.getElementById('cfg-title').value;
   document.getElementById('prev-sub').textContent=document.getElementById('cfg-sub').value;
@@ -502,21 +529,48 @@ function doPrint(){
   const title=esc(document.getElementById('cfg-title').value);
   const sub=esc(document.getElementById('cfg-sub').value);
   const note=esc(document.getElementById('cfg-note').value);
-  const svgContent=document.getElementById('prev-svg-wrap').innerHTML;
+  const showEmail=document.getElementById('cfg-email').checked;
+  const forest=buildForest();
+  const {svg:svgContent, contentW, contentH}=buildSVG(forest,showEmail);
+
+  // A4横の印刷可能領域: 277mm x 190mm (margin 12mmで計算)
+  // 96dpi換算: 277mm≈1047px, 190mm≈718px
+  // ヘッダー高さ約42pxを引いた残りにツリーをフィット
+  const printW=1047, printH=718, headerH=48;
+  const availH=printH-headerH-16;
+  const scaleX=printW/contentW, scaleY=availH/contentH;
+  const scale=Math.min(scaleX,scaleY,1); // 拡大はしない、縮小のみ
+  const scaledW=Math.round(contentW*scale);
+  const scaledH=Math.round(contentH*scale);
+  // 中央揃えのオフセット
+  const ox=Math.round((printW-scaledW)/2);
+
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${title}</title>
 <style>
-body{font-family:"Hiragino Sans","Meiryo",sans-serif;padding:18px;background:#fff}
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-h1{font-size:16px;font-weight:700;margin-bottom:2px}
-.sub{font-size:13px;color:#555}
-.note{font-size:11px;color:#555;text-align:right;max-width:280px;line-height:1.6}
-svg{max-width:100%;height:auto}
-@media print{@page{size:A4 landscape;margin:12mm}button{display:none}}
+*{box-sizing:border-box}
+body{font-family:"Hiragino Sans","Meiryo",sans-serif;background:#fff;margin:0;padding:14px 18px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;width:${printW}px}
+h1{font-size:16px;font-weight:700;margin-bottom:2px;color:#1a2a3a}
+.sub{font-size:13px;color:#4a5a6a}
+.note{font-size:11px;color:#6a7a8a;text-align:right;max-width:280px;line-height:1.6}
+.svg-center{width:${printW}px;display:flex;justify-content:center;align-items:flex-start}
+.svg-center svg{width:${scaledW}px;height:${scaledH}px}
+@media print{
+  @page{size:A4 landscape;margin:12mm}
+  body{padding:0}
+  button{display:none}
+  .hdr{width:100%}
+  .svg-center{width:100%}
+  .svg-center svg{max-width:100%;height:auto}
+}
 </style></head><body>
-<div class="hdr"><div><h1>${title}</h1><div class="sub">${sub}</div></div><div class="note">${note}</div></div>
-${svgContent}
-<br><button onclick="window.print()" style="margin-top:10px;padding:7px 18px;font-size:13px;cursor:pointer;font-family:inherit">印刷 / PDF保存</button>
+<div class="hdr">
+  <div><h1>${title}</h1><div class="sub">${sub}</div></div>
+  <div class="note">${note}</div>
+</div>
+<div class="svg-center">${svgContent}</div>
+<button onclick="window.print()" style="margin-top:14px;padding:7px 18px;font-size:13px;cursor:pointer;font-family:inherit;border:1px solid #ccc;border-radius:6px;background:#fff">印刷 / PDF保存</button>
 <script>window.onload=()=>window.print();<\/script>
 </body></html>`);
   w.document.close();
