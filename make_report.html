@@ -674,7 +674,8 @@ textarea{ resize:vertical; min-height:64px; }
 
     <div class="card">
       <h2>自治会への報告および要望事項等</h2>
-      <textarea id="requests" rows="5" placeholder="書ききれない場合は別紙対応となります"></textarea>
+      <p style="font-size:12px;color:#333;margin:0 0 6px;">200字を超えると自動的に別紙（2ページ目）が作成されます。</p>
+      <textarea id="requests" rows="5" placeholder="書ききれない場合は200字超で自動的に別紙が作成されます"></textarea>
       <div class="char-counter" id="requestsCounter"></div>
     </div>
 
@@ -853,10 +854,18 @@ textarea{ resize:vertical; min-height:64px; }
     counter.classList.remove('warn','over');
     if(over){
       counter.classList.add('over');
-      counter.textContent = `${len} / ${cfg.max}文字　⚠ 上限を超えています。書ききれない内容は別紙にご記入のうえ、本紙とあわせてご提出ください。`;
+      if(key === 'requests'){
+        counter.textContent = `${len} / ${cfg.max}文字　📄 200字を超えたため、別紙（2ページ目以降）を自動作成しました。印刷すると2枚以上出力されます。`;
+      } else {
+        counter.textContent = `${len} / ${cfg.max}文字　⚠ 上限を超えています。書ききれない内容は別紙にご記入のうえ、本紙とあわせてご提出ください。`;
+      }
     } else if(near){
       counter.classList.add('warn');
-      counter.textContent = `${len} / ${cfg.max}文字`;
+      if(key === 'requests'){
+        counter.textContent = `${len} / ${cfg.max}文字　（200字を超えると別紙が自動作成されます）`;
+      } else {
+        counter.textContent = `${len} / ${cfg.max}文字`;
+      }
     } else {
       counter.textContent = `${len} / ${cfg.max}文字`;
     }
