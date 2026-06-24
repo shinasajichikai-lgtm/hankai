@@ -38,6 +38,7 @@ body{font-family:"Hiragino Sans","Meiryo",sans-serif;color:#222;background:#f2f2
 .edit-panel{background:#fff;border:1px solid #e0e0dc;border-radius:10px;padding:13px 15px;display:none}
 .edit-panel h3{font-size:13px;font-weight:600;margin-bottom:9px;color:#555}
 .edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.edit-grid .field-full{grid-column:1 / -1}
 .edit-btn-row{display:flex;gap:7px;margin-top:10px}
 .btn-sm{padding:6px 13px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;border:none;font-weight:600}
 .btn-save{background:#1a1a1a;color:#fff}.btn-save:hover{background:#333}
@@ -124,6 +125,7 @@ body{font-family:"Hiragino Sans","Meiryo",sans-serif;color:#222;background:#f2f2
     <div class="edit-grid">
       <div class="field"><label>氏名</label><input type="text" id="edit-name" placeholder="例：山田" /></div>
       <div class="field"><label>電話番号</label><input type="text" id="edit-phone" placeholder="例：090-0000-0000" /></div>
+      <div class="field field-full"><label>電話番号２（任意）</label><input type="text" id="edit-phone2" placeholder="例：自宅 06-0000-0000" /></div>
     </div>
     <div class="field" id="email-field" style="margin-top:8px;display:none">
       <label>メールアドレス</label>
@@ -263,14 +265,14 @@ function newId(){ return ++seq; }
 
 function addRoot(){
   const id = newId();
-  nodes.push({id, name:'', phone:'', email:'', parentId:null});
+  nodes.push({id, name:'', phone:'', phone2:'', email:'', parentId:null});
   renderEditor();
   openEdit(id, true);
 }
 
 function addChild(parentId){
   const id = newId();
-  nodes.push({id, name:'', phone:'', email:'', parentId});
+  nodes.push({id, name:'', phone:'', phone2:'', email:'', parentId});
   renderEditor();
   openEdit(id, false);
 }
@@ -295,6 +297,7 @@ function openEdit(id, isNew){
   document.getElementById('edit-title').textContent = isNew?'新しい連絡先を入力':'連絡先を編集';
   document.getElementById('edit-name').value=n.name||'';
   document.getElementById('edit-phone').value=n.phone||'';
+  document.getElementById('edit-phone2').value=n.phone2||'';
   document.getElementById('edit-email').value=n.email||'';
   document.getElementById('email-field').style.display = document.getElementById('cfg-email').checked?'block':'none';
   document.getElementById('edit-name').focus();
@@ -306,6 +309,7 @@ function saveEdit(){
   const n=nodes.find(x=>x.id===editingId);
   n.name=document.getElementById('edit-name').value.trim();
   n.phone=document.getElementById('edit-phone').value.trim();
+  n.phone2=document.getElementById('edit-phone2').value.trim();
   n.email=document.getElementById('edit-email').value.trim();
   editingId=null;
   document.getElementById('edit-panel').style.display='none';
@@ -375,7 +379,7 @@ function makeEditorNode(tree){
   box.onclick=e=>{e.stopPropagation();openEdit(n.id,false);};
   const inner=document.createElement('div');
   if(n.name){
-    inner.innerHTML=`<div class="node-name">${esc(n.name)}</div><div class="node-phone">${esc(n.phone||'—')}</div>${showEmail&&n.email?`<div class="node-email">${esc(n.email)}</div>`:''}`;
+    inner.innerHTML=`<div class="node-name">${esc(n.name)}</div><div class="node-phone">${esc(n.phone||'—')}</div>${n.phone2?`<div class="node-phone">${esc(n.phone2)}</div>`:''}${showEmail&&n.email?`<div class="node-email">${esc(n.email)}</div>`:''}`;
   } else {
     inner.innerHTML=`<div class="node-empty">（未入力）</div>`;
   }
@@ -438,7 +442,8 @@ document.getElementById('tree-canvas').addEventListener('click',()=>{
 // ═══════════════════════════════════════════════
 //  SVG PRINT PREVIEW  ― 縦横線スタイル＋おしゃれ矩形
 // ═══════════════════════════════════════════════
-const BW=110, BH=60, HGAP=20, VGAP=40;
+const BW=110, HGAP=20, VGAP=40;
+let BH=60; // 連絡先の最大行数に応じてbuildSVG()内で動的に決定される
 
 function treeW(t){ if(!t.children||!t.children.length)return 1; return t.children.reduce((s,c)=>s+treeW(c),0); }
 
@@ -452,6 +457,18 @@ function layoutSVG(tree,depth,offset,all){
 }
 
 function buildSVG(forest, showEmail){
+  // 全ノードのうち最大の行数（氏名＋電話番号＋電話番号2＋メール）に合わせてボックス高さを決定
+  let maxLines=1;
+  function scan(t){
+    const n=t.node;
+    let lines=1+(n.phone?1:0)+(n.phone2?1:0)+(showEmail&&n.email?1:0);
+    if(lines>maxLines) maxLines=lines;
+    (t.children||[]).forEach(scan);
+  }
+  forest.forEach(scan);
+  // 上下の余白を十分に確保できる高さを行数から算出（最低60px）
+  BH=Math.max(60, 34 + maxLines*16);
+
   let offset=0; const all=[];
   forest.forEach(t=>{layoutSVG(t,0,offset,all);offset+=treeW(t);});
 
@@ -502,14 +519,17 @@ function buildSVG(forest, showEmail){
 
     // text
     const hasEmail=showEmail&&n.email;
-    const totalLines=1+(n.phone?1:0)+(hasEmail?1:0);
+    const hasPhone2=!!n.phone2;
+    const totalLines=1+(n.phone?1:0)+(hasPhone2?1:0)+(hasEmail?1:0);
     const lineH=16;
     const textBlockH=(totalLines-1)*lineH;
     const startY=by+accentH + (BH-accentH-textBlockH)/2 + 10;
 
+    let li=0;
     boxes.push(`<text x="${cx}" y="${startY}" text-anchor="middle" font-size="14" font-weight="700" fill="#1a2a3a" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`);
-    if(n.phone) boxes.push(`<text x="${cx}" y="${startY+lineH}" text-anchor="middle" font-size="13" fill="#3a4e62" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`);
-    if(hasEmail) boxes.push(`<text x="${cx}" y="${startY+lineH*2}" text-anchor="middle" font-size="11" fill="#5a6e82" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`);
+    if(n.phone){ li++; boxes.push(`<text x="${cx}" y="${startY+lineH*li}" text-anchor="middle" font-size="13" fill="#3a4e62" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`); }
+    if(hasPhone2){ li++; boxes.push(`<text x="${cx}" y="${startY+lineH*li}" text-anchor="middle" font-size="13" fill="#3a4e62" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone2)}</text>`); }
+    if(hasEmail){ li++; boxes.push(`<text x="${cx}" y="${startY+lineH*li}" text-anchor="middle" font-size="11" fill="#5a6e82" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`); }
 
     (t.children||[]).forEach(c=>drawBoxes(c));
   }
