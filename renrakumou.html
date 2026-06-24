@@ -497,7 +497,7 @@ function buildSVG(forest, showEmail){
     const textBlockH=(totalLines-1)*lineH;
     const startY=by+accentH + (BH-accentH-textBlockH)/2 + 10;
 
-    boxes.push(`<text x="${cx}" y="${startY}" text-anchor="middle" font-size="13" font-weight="700" fill="#1a2a3a" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`);
+    boxes.push(`<text x="${cx}" y="${startY}" text-anchor="middle" font-size="12" font-weight="700" fill="#1a2a3a" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`);
     if(n.phone) boxes.push(`<text x="${cx}" y="${startY+lineH}" text-anchor="middle" font-size="11" fill="#3a4e62" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`);
     if(hasEmail) boxes.push(`<text x="${cx}" y="${startY+lineH*2}" text-anchor="middle" font-size="10" fill="#5a6e82" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`);
 
