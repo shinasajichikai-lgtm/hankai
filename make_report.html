@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>班会の報告書 入力支援</title>
+<style>
+:root{
+  --ink:#2b2b28;
+  --paper:#fbfaf7;
+  --line:#cfc9bd;
+  --accent:#7a5c3e;
+  --accent-soft:#efe6d8;
+  --field-bg:#ffffff;
+  --field-border:#b8b0a0;
+  --danger:#a4453a;
+  --ok:#3f7a52;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+  background:#eee9df;
+  color:var(--ink);
+  line-height:1.6;
+}
+
+/* ===== ヘッダー ===== */
+header{
+  background:var(--ink);
+  color:#fbfaf7;
+  padding:14px 16px;
+  position:sticky;
+  top:0;
+  z-index:50;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+header h1{
+  margin:0;
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:.02em;
+  line-height:1.3;
+}
+header p{
+  margin:4px 0 0;
+  font-size:12px;
+  color:#cfc8b8;
+  display:none;
+}
+@media (min-width:600px){
+  header{ padding:18px 24px; }
+  header h1{ font-size:19px; }
+  header p{ display:block; }
+}
+
+/* ===== 補足説明（保存ファイルの仕組み） ===== */
+.info-note{
+  background:#eef4f1;
+  border-bottom:1px solid #cfe0d8;
+  padding:10px 16px;
+  font-size:12px;
+  line-height:1.7;
+  color:#3a4a43;
+}
+@media (min-width:600px){
+  .info-note{ padding:10px 24px; font-size:12.5px; }
+}
+.info-note strong{ color:var(--ok); }
+
+/* ===== ツールバー ===== */
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:10px 16px;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:48px;
+  z-index:40;
+}
+@media (min-width:600px){
+  .toolbar{
+    gap:10px;
+    padding:14px 24px;
+    top:74px;
+  }
+}
+.btn{
+  border:none;
+  border-radius:6px;
+  padding:9px 14px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform .08s ease, box-shadow .08s ease;
+  white-space:nowrap;
+}
+@media (min-width:600px){
+  .btn{ padding:10px 18px; font-size:14px; }
+}
+/* モバイルでは全ボタンを均等に並べる */
+@media (max-width:480px){
+  .toolbar{ gap:6px; }
+  .btn{ flex:1 1 calc(50% - 6px); font-size:12px; padding:9px 8px; }
+  .toolbar .spacer{ display:none; }
+  .status{ width:100%; text-align:center; font-size:12px; }
+}
+.btn:active{ transform:translateY(1px); }
+.btn-primary{ background:var(--accent); color:#fff; }
+.btn-primary:hover{ background:#674a30; }
+.btn-secondary{ background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent); }
+.btn-secondary:hover{ background:#e3d6bf; }
+.btn-ghost{ background:transparent; color:#555; border:1px solid var(--field-border); }
+.btn-ghost:hover{ background:#f3f1ec; }
+.toolbar .spacer{ flex:1; }
+.status{
+  font-size:12.5px;
+  color:var(--ok);
+  align-self:center;
+  min-height:1.2em;
+}
+
+/* ===== プレビュー切替ボタン（モバイル専用） ===== */
+.preview-toggle-btn{
+  display:none;
+  width:100%;
+  background:var(--accent-soft);
+  color:var(--accent);
+  border:1px solid var(--accent);
+  border-radius:8px;
+  padding:12px;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  text-align:center;
+  margin-bottom:4px;
+  font-family:inherit;
+}
+@media (max-width:880px){
+  .preview-toggle-btn{ display:block; }
+}
+@media (max-width:880px){
+  .preview-pane.collapsed .sheet-scroll{ display:none; }
+  .preview-pane.collapsed .pane-label{ display:none; }
+}
+
+/* ===== メイン2カラム ===== */
+.wrap{
+  display:grid;
+  grid-template-columns:minmax(360px,560px) 1fr;
+  gap:20px;
+  padding:16px 16px 60px;
+  max-width:1400px;
+  margin:0 auto;
+}
+@media (min-width:600px){
+  .wrap{ padding:20px 24px 60px; }
+}
+@media (max-width:880px){
+  .wrap{ grid-template-columns:1fr; }
+  .preview-pane{ order:2; }
+}
+
+/* ===== 入力フォーム ===== */
+.form-pane{ min-width:0; }
+.card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:16px 14px;
+  margin-bottom:14px;
+}
+@media (min-width:480px){
+  .card{ padding:20px 22px; margin-bottom:18px; }
+}
+.card h2{
+  font-size:14px;
+  margin:0 0 12px;
+  color:var(--accent);
+  border-bottom:2px solid var(--accent-soft);
+  padding-bottom:8px;
+}
+@media (min-width:480px){
+  .card h2{ font-size:15px; margin-bottom:14px; }
+}
+.field-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:10px;
+}
+@media (min-width:480px){
+  .field-row{ gap:12px; margin-bottom:12px; }
+}
+.field{
+  flex:1;
+  min-width:120px;
+}
+.field.narrow{ flex:0 0 90px; }
+.field.wide{ flex:1 1 100%; }
+.field.time-field{ flex:0 0 auto; }
+/* スマホでは時刻フィールドを横並びに */
+@media (max-width:479px){
+  .field.narrow{ flex:0 0 80px; }
+}
+.time-input-group{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-wrap:nowrap;
+  white-space:nowrap;
+}
+.time-input-group .time-num{
+  width:54px;
+  flex:0 0 54px;
+  min-width:0;
+  padding:9px 6px;
+  text-align:center;
+}
+.time-input-group span{
+  font-size:13px;
+  color:#777;
+  flex:0 0 auto;
+}
+label{
+  display:block;
+  font-size:12.5px;
+  color:#666;
+  margin-bottom:4px;
+  font-weight:600;
+}
+input[type=text], input[type=number], input[type=date], textarea, select{
+  width:100%;
+  padding:9px 10px;
+  font-size:16px; /* iOS zoom防止のため16px以上 */
+  border:1px solid var(--field-border);
+  border-radius:6px;
+  background:var(--field-bg);
+  color:var(--ink);
+  font-family:inherit;
+}
+@media (min-width:600px){
+  input[type=text], input[type=number], input[type=date], textarea, select{
+    font-size:14.5px;
+  }
+}
+input:focus, textarea:focus, select:focus{
+  outline:2px solid var(--accent);
+  outline-offset:1px;
+  border-color:var(--accent);
+}
+textarea{ resize:vertical; min-height:64px; }
+.inline-unit{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.inline-unit span{ font-size:13.5px; color:#777; white-space:nowrap; }
+.hint{
+  font-size:11.5px;
+  color:#928c7e;
+  margin-top:3px;
+}
+.char-counter{
+  font-size:12px;
+  color:#928c7e;
+  margin-top:6px;
+  text-align:right;
+}
+.char-counter.warn{ color:#b8862f; font-weight:600; }
+.char-counter.over{ color:var(--danger); font-weight:700; text-align:left; }
+.calc-box{
+  background:var(--accent-soft);
+  border:1px dashed var(--accent);
+  border-radius:8px;
+  padding:12px 14px;
+  margin-top:8px;
+  font-size:13.5px;
+}
+.calc-box strong{ color:var(--accent); font-size:16px; }
+.required-mark{
+  display:inline-block;
+  background:var(--danger);
+  color:#fff;
+  font-size:10.5px;
+  font-weight:700;
+  padding:1px 6px;
+  border-radius:3px;
+  margin-left:4px;
+  vertical-align:middle;
+}
+.synced-value{
+  padding:9px 10px;
+  font-size:14.5px;
+  font-weight:700;
+  background:#f3f1ec;
+  border:1px solid var(--field-border);
+  border-radius:6px;
+  color:var(--ink);
+  text-align:center;
+}
+.amount-warning{
+  font-size:13px;
+  font-weight:700;
+  color:var(--danger);
+  background:#fbeae7;
+  border:1px solid var(--danger);
+  border-radius:6px;
+  padding:9px 12px;
+  margin-top:8px;
+  display:none;
+}
+.amount-warning.show{ display:block; }
+
+/* 参加者リスト */
+.list-rows{ display:flex; flex-direction:column; gap:8px; }
+.list-row{ display:flex; gap:8px; align-items:center; }
+.list-row input{ flex:1; }
+.list-row .rm{
+  flex:0 0 auto;
+  background:#f4ece6;
+  color:var(--danger);
+  border:1px solid var(--danger);
+  border-radius:6px;
+  width:30px; height:30px;
+  cursor:pointer;
+  font-size:14px;
+  line-height:1;
+}
+.add-row{
+  margin-top:8px;
+  background:none;
+  border:1px dashed var(--field-border);
+  border-radius:6px;
+  padding:8px 14px;
+  font-size:13px;
+  color:var(--accent);
+  cursor:pointer;
+  width:100%;
+}
+.add-row:hover{ background:var(--accent-soft); }
+
+/* ===== 印刷プレビュー ===== */
+.preview-pane{
+  min-width:0;
+}
+.preview-pane .pane-label{
+  font-size:13px;
+  font-weight:700;
+  color:#666;
+  margin-bottom:8px;
+}
+.sheet-scroll{
+  background:#fff;
+  border-radius:10px;
+  padding:18px;
+  overflow:auto;
+  max-height:calc(100vh - 160px);
+  border:1px solid var(--line);
+}
+.sheet{
+  background:#fff;
+  width:210mm;
+  min-height:297mm;
+  margin:0 auto;
+  padding:14mm 13mm;
+  box-shadow:0 3px 14px rgba(0,0,0,.25);
+  font-size:11.5px;
+  color:#111;
+  position:relative;
+}
+.sheet, .sheet *{ font-family:"Hiragino Mincho ProN","Yu Mincho","MS PMincho",serif; }
+.sheet .title-line{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:4px;
+  font-size:12.5px;
+}
+.sheet .doc-title{
+  text-align:center;
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:.5em;
+  margin:14px 0 14px;
+}
+.sheet .lead{
+  font-size:11px;
+  margin-bottom:10px;
+}
+.sheet table{
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:10px;
+}
+.sheet table.report-table td, .sheet table.report-table th{
+  border:1px solid #333;
+  padding:5px 7px;
+  vertical-align:top;
+  font-size:11px;
+}
+.sheet table.report-table th{
+  background:#f1efe9;
+  font-weight:700;
+  white-space:nowrap;
+  width:18%;
+}
+.sheet .pre-wrap{ white-space:pre-wrap; line-height:1.42; }
+.sheet td.min-h-topic, .sheet td.min-h-names, .sheet td.min-h-req{
+  position:relative;
+  overflow:hidden;
+}
+.sheet .min-h-topic{ height:28mm; }
+.sheet .min-h-req{ height:26mm; }
+.sheet .min-h-names{ height:16mm; }
+.sheet .overflow-badge{
+  position:absolute;
+  bottom:2px;
+  right:4px;
+  font-size:9px;
+  font-weight:700;
+  color:#fff;
+  background:var(--danger);
+  padding:1px 5px;
+  border-radius:3px;
+  line-height:1.4;
+  display:none;
+}
+.sheet .overflow-badge.show{ display:inline-block; }
+.sheet .cut-line{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:14px 0 10px;
+  font-size:10.5px;
+  color:#444;
+}
+.sheet .cut-line .dash{
+  flex:1;
+  border-top:1px dashed #555;
+}
+.sheet .claim-box{
+  border:1px solid #333;
+  padding:10px 12px;
+  font-size:11.5px;
+}
+.sheet .claim-line{
+  margin:6px 0;
+}
+.sheet .claim-line-signature{
+  text-align:right;
+  margin-top:10px;
+}
+.sheet .seal-cell{
+  display:inline-block;
+  border:1px solid #333;
+  width:34px;
+  height:34px;
+  text-align:center;
+  line-height:34px;
+  margin-left:6px;
+  border-radius:50%;
+  font-size:10px;
+  vertical-align:middle;
+}
+.sheet .small-note{
+  font-size:9.5px;
+  color:#555;
+  margin-top:6px;
+}
+.sheet .footer-note{
+  position:absolute;
+  bottom:8mm;
+  right:13mm;
+  font-size:9px;
+  color:#777;
+}
+.val{ font-weight:700; }
+.underline-val{
+  display:inline-block;
+  min-width:2.4em;
+  text-align:center;
+  padding:0 2px;
+  font-weight:600;
+}
+
+@media print{
+  header, .toolbar, .pane-label, .form-pane, .preview-toggle-btn{ display:none !important; }
+  body{ background:#fff; }
+  .wrap{ display:block; padding:0; max-width:none; }
+  .sheet-scroll{ background:#fff; padding:0; max-height:none; overflow:visible; }
+  .preview-pane.collapsed .sheet-scroll{ display:block !important; }
+  .sheet{
+    box-shadow:none;
+    margin:0;
+    width:auto;
+    min-height:0;
+  }
+  @page{ size:A4; margin:10mm; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>新旭ケ丘自治会　班会の報告書　入力支援ツール</h1>
+  <p>右側に印刷イメージがリアルタイムで表示されます。入力後は「ファイルとして保存」で、続きから編集できるHTMLファイルを書き出せます。</p>
+</header>
+
+<div class="info-note">
+  <strong>📌 このツールについて：</strong>
+  「ファイルとして保存」を押すと、入力したデータだけでなく、この入力支援ツール本体（画面・印刷機能などのプログラム一式）も含めて、ひとつの新しいHTMLファイルとして書き出されます。
+  そのため、保存したファイルはそれ単体でこのツールと同じように開いて使うことができます（このページに「読み込み」ボタンはありませんが、保存したファイルをブラウザで開くこと自体が「読み込み」になります）。
+</div>
+
+<div class="toolbar">
+  <button class="btn btn-primary" id="btnSave" title="入力データとツール本体を含むHTMLファイルを書き出します。このファイルを開くと続きから編集できます。">💾 入力内容ごとファイルとして保存</button>
+  <button class="btn btn-secondary" id="btnPrint">🖨️ 印刷する</button>
+  <button class="btn btn-ghost" id="btnReset">🗑️ すべてクリア</button>
+  <div class="spacer"></div>
+  <div class="status" id="statusMsg"></div>
+</div>
+
+<div class="wrap">
+  <!-- ============ 入力フォーム ============ -->
+  <div class="form-pane">
+
+    <div class="card">
+      <h2>基本情報</h2>
+      <div class="field-row">
+        <div class="field narrow">
+          <label>班番号</label>
+          <div class="inline-unit"><span>第</span><input type="text" id="hanNo" placeholder="1"><span>班</span></div>
+        </div>
+        <div class="field">
+          <label>班長名</label>
+          <input type="text" id="hanchoName" placeholder="例）山田太郎">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>報告書 作成日</label>
+          <input type="date" id="reportDate">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>班会の開催内容</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>開催日</label>
+          <input type="date" id="meetingDate">
+        </div>
+        <div class="field narrow">
+          <label>曜日</label>
+          <select id="meetingWeekday">
+            <option value="">自動</option>
+            <option>月</option><option>火</option><option>水</option>
+            <option>木</option><option>金</option><option>土</option><option>日</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field time-field">
+          <label>開始</label>
+          <div class="time-input-group">
+            <input type="number" id="startHour" class="time-num" min="0" max="23" placeholder="19"><span>時</span>
+            <input type="number" id="startMin" class="time-num" min="0" max="59" placeholder="00"><span>分</span>
+          </div>
+        </div>
+        <div class="field time-field">
+          <label>終了</label>
+          <div class="time-input-group">
+            <input type="number" id="endHour" class="time-num" min="0" max="23" placeholder="20"><span>時</span>
+            <input type="number" id="endMin" class="time-num" min="0" max="59" placeholder="30"><span>分</span>
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field wide">
+          <label>場所</label>
+          <input type="text" id="place" placeholder="例）班長宅、〇〇集会所など">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>参加者数</h2>
+      <div class="field-row">
+        <div class="field narrow">
+          <label>班会員数（世帯）</label>
+          <input type="number" id="memberHouses" min="0" placeholder="0">
+        </div>
+        <div class="field narrow">
+          <label>参加者数（名）</label>
+          <input type="number" id="attendeeCount" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label>その他参加者</label>
+          <input type="text" id="otherAttendees" placeholder="例）民生委員、役員など">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>主な議題等</h2>
+      <textarea id="topics" rows="5" placeholder="話し合った内容を入力してください"></textarea>
+      <div class="char-counter" id="topicsCounter"></div>
+    </div>
+
+    <div class="card">
+      <h2>参加者名</h2>
+      <textarea id="attendeeNames" rows="4" placeholder="参加者の氏名を入力してください（改行・読点等で区切ってOK）"></textarea>
+      <div class="char-counter" id="attendeeNamesCounter"></div>
+    </div>
+
+    <div class="card">
+      <h2>自治会への報告および要望事項等</h2>
+      <textarea id="requests" rows="5" placeholder="書ききれない場合は別紙対応となります"></textarea>
+      <div class="char-counter" id="requestsCounter"></div>
+    </div>
+
+    <div class="card">
+      <h2>班会費の請求</h2>
+      <div class="field-row">
+        <div class="field narrow">
+          <label>第〇班</label>
+          <div class="inline-unit"><span>第</span><input type="text" id="claimHanNo" placeholder="同上"><span>班</span></div>
+        </div>
+        <div class="field">
+          <label>請求日</label>
+          <input type="date" id="claimDate">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field narrow">
+          <label>参加人数（名）</label>
+          <div class="synced-value" id="claimCountDisplay">0 名</div>
+          <div class="hint">↑「参加者数」（上の欄）と連動します</div>
+        </div>
+        <div class="field">
+          <label>請求金額（円）※実費を入力 <span class="required-mark">必須</span></label>
+          <div class="inline-unit"><input type="number" id="claimAmount" min="0" placeholder="実際にかかった費用を入力"><span>円</span></div>
+        </div>
+      </div>
+      <div class="calc-box">
+        参加人数 × 220円 ＝ <strong id="calcResult">0 円</strong>　（これは上限額の目安です。請求金額には、実際にかかった費用を入力してください。）
+      </div>
+      <div class="amount-warning" id="amountWarning"></div>
+      <div class="field-row" style="margin-top:10px;">
+        <div class="field">
+          <label>班長名（請求欄）</label>
+          <input type="text" id="claimHanchoName" placeholder="基本情報の班長名と同じでよい場合は空欄でOK">
+        </div>
+      </div>
+      <p class="hint">※ 領収書（レシート可）および明細書は、報告書に貼り付けず、別添で会長へ提出してください。</p>
+    </div>
+
+  </div>
+
+  <!-- ============ 印刷プレビュー ============ -->
+  <div class="preview-pane collapsed" id="previewPane">
+    <button class="preview-toggle-btn" id="btnTogglePreview">👁️ 印刷イメージを表示する</button>
+    <div class="pane-label">印刷イメージ（A4・このまま印刷されます）</div>
+    <div class="sheet-scroll">
+      <div class="sheet" id="sheet">
+
+        <div class="title-line">
+          <div>新旭ケ丘自治会　様</div>
+          <div>令和　<span class="underline-val" id="p_year">　</span>　年　<span class="underline-val" id="p_rdate_m">　</span>　月　<span class="underline-val" id="p_rdate_d">　</span>　日</div>
+        </div>
+        <div class="title-line">
+          <div>第　<span class="underline-val" id="p_hanno">　</span>　班</div>
+          <div>班長：　<span class="underline-val" id="p_hancho" style="min-width:8em;">　</span></div>
+        </div>
+
+        <div class="doc-title">班　会　の　報　告</div>
+        <div class="lead">下記のとおり、班会を開催いたしましたので、報告いたします。</div>
+
+        <table class="report-table">
+          <tr>
+            <th>日　時</th>
+            <td>
+              <span class="underline-val" id="p_m">　</span>月　<span class="underline-val" id="p_d">　</span>日（<span class="underline-val" id="p_wd">　</span>曜日）
+              　<span class="underline-val" id="p_sh">　</span>時<span class="underline-val" id="p_sm">　</span>分
+              ～
+              <span class="underline-val" id="p_eh">　</span>時<span class="underline-val" id="p_em">　</span>分
+            </td>
+          </tr>
+          <tr>
+            <th>場　所</th>
+            <td id="p_place">&nbsp;</td>
+          </tr>
+          <tr>
+            <th>参加者数</th>
+            <td>
+              班会員数　<span class="underline-val" id="p_members">　</span>　世帯のうち　参加者　<span class="underline-val" id="p_attendees">　</span>　名<br>
+              その他参加者：　<span id="p_others">&nbsp;</span>
+            </td>
+          </tr>
+          <tr>
+            <th>主な議題等</th>
+            <td class="min-h-topic">
+              <div class="pre-wrap" id="p_topics">&nbsp;</div>
+              <span class="overflow-badge" id="p_topics_overflow">→別紙へ続く</span>
+            </td>
+          </tr>
+          <tr>
+            <th>参加者名</th>
+            <td class="min-h-names">
+              <div class="pre-wrap" id="p_names">&nbsp;</div>
+              <span class="overflow-badge" id="p_names_overflow">→別紙へ続く</span>
+            </td>
+          </tr>
+          <tr>
+            <th>自治会への報告<br>および要望事項等</th>
+            <td class="min-h-req">
+              <div class="pre-wrap" id="p_requests">&nbsp;</div>
+              <span class="overflow-badge" id="p_requests_overflow">→別紙へ続く</span>
+            </td>
+          </tr>
+        </table>
+        <div class="small-note">※書ききれない時は、別紙にてお願いします。</div>
+        <div class="small-note" style="text-align:right; font-weight:700;">※切り離さず会長に提出してください</div>
+
+        <div class="cut-line"><div class="dash"></div>✂&nbsp;&nbsp;切り取り線&nbsp;&nbsp;✂<div class="dash"></div></div>
+
+        <div class="claim-box">
+          <div class="claim-line">班会費の請求：（班長→会長→会計→精算）</div>
+          <div class="claim-line">
+            第　<span class="underline-val" id="p_claim_hanno">　</span>　班　　
+            令和　<span class="underline-val" id="p_claim_y">　</span>　年　<span class="underline-val" id="p_claim_m">　</span>　月　<span class="underline-val" id="p_claim_d">　</span>　日　班会運営費を請求します。
+          </div>
+          <div class="claim-line">
+            班会参加人数（　<span class="underline-val" id="p_claim_count">　</span>　）名分　×220円迄＝　<span class="underline-val" id="p_claim_amount" style="min-width:5em; font-weight:700;">　</span>　円　（※請求金額をお書きください）
+          </div>
+          <div class="claim-line">（1人あたり220円限度額とします。）</div>
+          <div class="claim-line claim-line-signature">
+            班長：　<span class="underline-val" id="p_claim_hancho" style="min-width:8em;">　</span>
+            <span class="seal-cell">印</span>
+          </div>
+          <div class="small-note">※必ず領収書（レシート可）および明細書を添付（報告書に貼り付けない）してください。</div>
+        </div>
+
+        <div class="footer-note">新旭ヶ丘自治会　2026年6月改定版（HTML入力支援版）</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  const FIELD_IDS = [
+    'hanNo','hanchoName','reportDate',
+    'meetingDate','meetingWeekday','startHour','startMin','endHour','endMin','place',
+    'memberHouses','attendeeCount','otherAttendees',
+    'topics','attendeeNames','requests',
+    'claimHanNo','claimDate','claimAmount','claimHanchoName'
+  ];
+
+  const WEEKDAY_JP = ['日','月','火','水','木','金','土'];
+
+  // 印刷時に固定の枠内へ収まる目安の文字数（超えた場合は別紙への記入を案内）
+  const CHAR_LIMITS = {
+    topics:        { max:250, fieldId:'topics',        counterId:'topicsCounter',        previewId:'p_topics',   badgeId:'p_topics_overflow' },
+    attendeeNames: { max:120, fieldId:'attendeeNames', counterId:'attendeeNamesCounter', previewId:'p_names',    badgeId:'p_names_overflow' },
+    requests:      { max:200, fieldId:'requests',       counterId:'requestsCounter',      previewId:'p_requests', badgeId:'p_requests_overflow' }
+  };
+
+  function updateCharCounter(key){
+    const cfg = CHAR_LIMITS[key];
+    const node = el(cfg.fieldId);
+    const counter = el(cfg.counterId);
+    const badge = el(cfg.badgeId);
+    if(!node || !counter) return;
+
+    const len = node.value.length;
+    const over = len > cfg.max;
+    const near = !over && len >= cfg.max*0.8;
+
+    counter.classList.remove('warn','over');
+    if(over){
+      counter.classList.add('over');
+      counter.textContent = `${len} / ${cfg.max}文字　⚠ 上限を超えています。書ききれない内容は別紙にご記入のうえ、本紙とあわせてご提出ください。`;
+    } else if(near){
+      counter.classList.add('warn');
+      counter.textContent = `${len} / ${cfg.max}文字`;
+    } else {
+      counter.textContent = `${len} / ${cfg.max}文字`;
+    }
+
+    if(badge){ badge.classList.toggle('show', over); }
+  }
+
+  function el(id){ return document.getElementById(id); }
+  function setText(id, val){
+    const node = el(id);
+    if(!node) return;
+    const v = (val===undefined || val===null || val==='') ? '\u00A0' : String(val).replace(/\n/g,'<br>');
+    node.innerHTML = v;
+  }
+
+  function pad2(n){ n = String(n||'').trim(); if(n==='') return '\u00A0\u00A0'; return n.length<2 ? ('\u00A0'+n) : n; }
+
+  function getWarekiYear(dateStr){
+    if(!dateStr) return '';
+    const y = parseInt(dateStr.slice(0,4),10);
+    // 令和は2019年5月1日開始
+    const reiwa = y - 2018;
+    return reiwa>0 ? reiwa : '';
+  }
+  function getMonthDay(dateStr){
+    if(!dateStr) return {m:'', d:''};
+    const parts = dateStr.split('-');
+    return { m: parseInt(parts[1],10), d: parseInt(parts[2],10) };
+  }
+  function getWeekday(dateStr){
+    if(!dateStr) return '';
+    const dt = new Date(dateStr+'T00:00:00');
+    if(isNaN(dt.getTime())) return '';
+    return WEEKDAY_JP[dt.getDay()];
+  }
+
+  function claimLimitAmount(){
+    const count = parseInt(el('attendeeCount').value,10);
+    if(!isNaN(count) && count>=0){
+      return count*220;
+    }
+    return 0;
+  }
+
+  function render(){
+    // 基本情報
+    setText('p_hanno', el('hanNo').value);
+    setText('p_hancho', el('hanchoName').value);
+
+    const rWareki = getWarekiYear(el('reportDate').value);
+    const rMD = getMonthDay(el('reportDate').value);
+    setText('p_year', rWareki);
+    setText('p_rdate_m', rMD.m);
+    setText('p_rdate_d', rMD.d);
+
+    // 開催内容
+    const mMD = getMonthDay(el('meetingDate').value);
+    setText('p_m', mMD.m);
+    setText('p_d', mMD.d);
+    let wd = el('meetingWeekday').value;
+    if(!wd) wd = getWeekday(el('meetingDate').value);
+    setText('p_wd', wd);
+    setText('p_sh', el('startHour').value);
+    setText('p_sm', el('startMin').value);
+    setText('p_eh', el('endHour').value);
+    setText('p_em', el('endMin').value);
+    setText('p_place', el('place').value);
+
+    // 参加者数
+    setText('p_members', el('memberHouses').value);
+    setText('p_attendees', el('attendeeCount').value);
+    setText('p_others', el('otherAttendees').value);
+
+    // 議題・参加者名・要望
+    setText('p_topics', el('topics').value);
+    setText('p_names', el('attendeeNames').value);
+    setText('p_requests', el('requests').value);
+    updateCharCounter('topics');
+    updateCharCounter('attendeeNames');
+    updateCharCounter('requests');
+
+    // 請求欄（参加人数は報告書の「参加者数」と連動。二重入力はしない）
+    const claimHanNo = el('claimHanNo').value || el('hanNo').value;
+    setText('p_claim_hanno', claimHanNo);
+
+    const cWareki = getWarekiYear(el('claimDate').value);
+    const cMD = getMonthDay(el('claimDate').value);
+    setText('p_claim_y', cWareki);
+    setText('p_claim_m', cMD.m);
+    setText('p_claim_d', cMD.d);
+
+    const attendeeCountVal = el('attendeeCount').value;
+    el('claimCountDisplay').textContent = (attendeeCountVal === '' ? '0' : attendeeCountVal) + ' 名';
+    setText('p_claim_count', attendeeCountVal);
+    setText('p_claim_amount', el('claimAmount').value);
+
+    const claimHancho = el('claimHanchoName').value || el('hanchoName').value;
+    setText('p_claim_hancho', claimHancho);
+
+    // 上限額の表示と、実費請求額のチェック（上限超過・未入力の警告）
+    const limitAmount = claimLimitAmount();
+    el('calcResult').textContent = limitAmount.toLocaleString() + ' 円';
+
+    const warningBox = el('amountWarning');
+    const amountRaw = el('claimAmount').value;
+    const amountVal = parseInt(amountRaw, 10);
+    const countRaw = attendeeCountVal;
+
+    if(warningBox){
+      if(amountRaw === ''){
+        if(countRaw !== ''){
+          warningBox.textContent = '⚠ 請求金額が未入力です。実際にかかった費用（実費）を入力してください。';
+          warningBox.classList.add('show');
+        } else {
+          warningBox.classList.remove('show');
+        }
+      } else if(!isNaN(amountVal) && amountVal > limitAmount){
+        warningBox.textContent = `⚠ 請求金額（${amountVal.toLocaleString()}円）が上限額（${limitAmount.toLocaleString()}円）を超えています。金額をご確認ください。`;
+        warningBox.classList.add('show');
+      } else {
+        warningBox.classList.remove('show');
+      }
+    }
+  }
+
+  FIELD_IDS.forEach(id=>{
+    const node = el(id);
+    if(node){ node.addEventListener('input', render); node.addEventListener('change', render); }
+  });
+
+  // ---- 状態の保存・復元（HTMLファイルへの自己埋め込み） ----
+  function collectState(){
+    const state = {};
+    FIELD_IDS.forEach(id=>{
+      const node = el(id);
+      if(node) state[id] = node.value;
+    });
+    return state;
+  }
+  function applyState(state){
+    if(!state) return;
+    FIELD_IDS.forEach(id=>{
+      const node = el(id);
+      if(node && state[id]!==undefined) node.value = state[id];
+    });
+    render();
+  }
+
+  // ページ読み込み時：埋め込まれた初期データがあれば復元
+  if(window.__INITIAL_STATE__){
+    applyState(window.__INITIAL_STATE__);
+  }
+  render();
+
+  // ---- ファイルとして保存（現在のHTML全体を、入力済み状態で書き出す）----
+  // ---- ツールバーのsticky top をヘッダー高さに合わせて動的調整 ----
+  function adjustToolbarTop(){
+    const header = document.querySelector('header');
+    const toolbar = document.querySelector('.toolbar');
+    if(header && toolbar){
+      toolbar.style.top = header.offsetHeight + 'px';
+    }
+  }
+  adjustToolbarTop();
+  window.addEventListener('resize', adjustToolbarTop);
+
+  // ---- プレビュー折りたたみ（モバイル用） ----
+  const previewPane = el('previewPane');
+  const btnTogglePreview = el('btnTogglePreview');
+  if(btnTogglePreview){
+    btnTogglePreview.addEventListener('click', function(){
+      const collapsed = previewPane.classList.toggle('collapsed');
+      btnTogglePreview.textContent = collapsed ? '👁️ 印刷イメージを表示する' : '🙈 印刷イメージを閉じる';
+    });
+  }
+
+  el('btnSave').addEventListener('click', function(){
+    const state = collectState();
+    const stateJson = JSON.stringify(state).replace(/</g,'\\u003c');
+
+    // 現在のドキュメントの完全なHTMLを取得
+    let fullHtml = document.documentElement.outerHTML;
+
+    // 既存の初期化スクリプトタグを取り除いてから、新しい状態を埋め込む
+    var scriptOpenTag = '<' + 'script id="__state_injector__">';
+    var scriptCloseTag = '<' + '/script>';
+    var injectorPattern = new RegExp(scriptOpenTag.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '[\\s\\S]*?' + scriptCloseTag.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+    fullHtml = fullHtml.replace(injectorPattern, '');
+
+    var headCloseTag = '<' + '/head>';
+    var injector = scriptOpenTag + 'window.__INITIAL_STATE__ = ' + stateJson + ';' + scriptCloseTag;
+    fullHtml = fullHtml.replace(headCloseTag, injector + headCloseTag);
+
+    const blob = new Blob(['<!DOCTYPE html>\n' + fullHtml], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+
+    const hanNo = el('hanNo').value || '未設定';
+    const mDate = el('meetingDate').value || '';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `班会報告書_第${hanNo}班_${mDate || '日付未設定'}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const status = el('statusMsg');
+    status.textContent = '保存しました（' + a.download + '）。このファイルを開くと続きから入力できます。';
+    setTimeout(()=>{ status.textContent=''; }, 6000);
+  });
+
+  el('btnPrint').addEventListener('click', function(){
+    window.print();
+  });
+
+  el('btnReset').addEventListener('click', function(){
+    if(confirm('入力した内容をすべて消去します。よろしいですか？')){
+      FIELD_IDS.forEach(id=>{ const node = el(id); if(node) node.value=''; });
+      render();
+    }
+  });
+
+})();
+</script>
+<script id="__state_injector__"></script>
+</body>
+</html>
