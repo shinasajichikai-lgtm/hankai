@@ -114,6 +114,17 @@ header p{
 .btn-secondary:hover{ background:#e3d6bf; }
 .btn-ghost{ background:transparent; color:#555; border:1px solid var(--field-border); }
 .btn-ghost:hover{ background:#f3f1ec; }
+.btn-mail{ background:#1a73e8; color:#fff; }
+.btn-mail:hover{ background:#1558b0; }
+
+/* メール転送ボタン：PCでは非表示、スマホでは表示 */
+@media (min-width:600px){
+  .btn-mail{ display:none; }
+}
+/* 印刷ボタン：スマホでは非表示 */
+@media (max-width:599px){
+  #btnPrint{ display:none; }
+}
 .toolbar .spacer{ flex:1; }
 .status{
   font-size:12.5px;
@@ -517,7 +528,8 @@ textarea{ resize:vertical; min-height:64px; }
 
 <div class="toolbar">
   <button class="btn btn-primary" id="btnSave" title="入力データとツール本体を含むHTMLファイルを書き出します。このファイルを開くと続きから編集できます。">💾 入力内容ごとファイルとして保存</button>
-  <button class="btn btn-secondary" id="btnPrint">🖨️ 印刷する</button>
+  <button class="btn btn-secondary" id="btnPrint" class="hide-mobile">🖨️ 印刷する</button>
+  <button class="btn btn-mail" id="btnMail" title="入力内容をメール本文にして転送します">📧 メールで転送</button>
   <button class="btn btn-ghost" id="btnReset">🗑️ すべてクリア</button>
   <div class="spacer"></div>
   <div class="status" id="statusMsg"></div>
@@ -964,6 +976,76 @@ textarea{ resize:vertical; min-height:64px; }
       btnTogglePreview.textContent = collapsed ? '👁️ 印刷イメージを表示する' : '🙈 印刷イメージを閉じる';
     });
   }
+
+  // ---- メールで転送（スマホ用） ----
+  function buildMailBody(){
+    const v = id => (el(id) ? el(id).value.trim() : '');
+    const fmt = (label, val) => val ? `${label}：${val}\n` : '';
+    const fmtDate = str => {
+      if(!str) return '';
+      const [y,m,d] = str.split('-');
+      const reiwa = parseInt(y,10) - 2018;
+      return `令和${reiwa}年${parseInt(m,10)}月${parseInt(d,10)}日`;
+    };
+    const meetingWd = v('meetingWeekday') || getWeekday(v('meetingDate'));
+    const meetingDateStr = v('meetingDate') ? `${fmtDate(v('meetingDate'))}（${meetingWd}）` : '';
+    const timeStr = [v('startHour') && v('startMin') ? `${v('startHour')}時${v('startMin')}分` : '',
+                     v('endHour')   && v('endMin')   ? `${v('endHour')}時${v('endMin')}分`   : '']
+                    .filter(Boolean).join('〜');
+    const claimAmt = v('claimAmount') ? `${parseInt(v('claimAmount'),10).toLocaleString()}円` : '';
+    const claimLimit = parseInt(v('attendeeCount'),10) * 220;
+
+    const lines = [
+      `【班会の報告書】`,
+      ``,
+      `■ 基本情報`,
+      fmt('第○班', v('hanNo') ? `第${v('hanNo')}班` : ''),
+      fmt('班長名', v('hanchoName')),
+      fmt('作成日', fmtDate(v('reportDate'))),
+      ``,
+      `■ 班会の開催内容`,
+      fmt('開催日', meetingDateStr),
+      fmt('時間', timeStr),
+      fmt('場所', v('place')),
+      ``,
+      `■ 参加者数`,
+      fmt('班会員数', v('memberHouses') ? `${v('memberHouses')}世帯` : ''),
+      fmt('参加者数', v('attendeeCount') ? `${v('attendeeCount')}名` : ''),
+      fmt('その他参加者', v('otherAttendees')),
+      ``,
+      `■ 主な議題等`,
+      v('topics') || '（未入力）',
+      ``,
+      `■ 参加者名`,
+      v('attendeeNames') || '（未入力）',
+      ``,
+      `■ 自治会への報告および要望事項等`,
+      v('requests') || '（なし）',
+      ``,
+      `■ 班会費の請求`,
+      fmt('請求班', v('claimHanNo') ? `第${v('claimHanNo')}班` : ''),
+      fmt('請求日', fmtDate(v('claimDate'))),
+      fmt('参加人数', v('attendeeCount') ? `${v('attendeeCount')}名` : ''),
+      fmt('請求金額', claimAmt),
+      !isNaN(claimLimit) && claimLimit > 0 ? `（上限目安：${claimLimit.toLocaleString()}円）\n` : '',
+      fmt('班長名（請求欄）', v('claimHanchoName')),
+      ``,
+      `--`,
+      `※ このメールは「班会の報告書 入力支援ツール」から自動生成されました。`,
+    ];
+    return lines.join('');
+  }
+
+  el('btnMail').addEventListener('click', function(){
+    const han = (el('hanNo') ? el('hanNo').value.trim() : '') || '○';
+    const subject = encodeURIComponent(`【班会報告書】第${han}班`);
+    const body    = encodeURIComponent(buildMailBody());
+    // mailtoリンクで既定のメールアプリを開く
+    const mailto = `mailto:?subject=${subject}&body=${body}`;
+    const a = document.createElement('a');
+    a.href = mailto;
+    a.click();
+  });
 
   el('btnSave').addEventListener('click', function(){
     const state = collectState();
