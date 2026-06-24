@@ -47,8 +47,8 @@ body{font-family:"Hiragino Sans","Meiryo",sans-serif;color:#222;background:#f2f2
 .preview-area{background:#fff;border:1px solid #e0e0dc;border-radius:10px;padding:16px 18px;display:none}
 .preview-area.visible{display:block}
 .preview-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.preview-title{font-size:16px;font-weight:700}
-.preview-sub{font-size:13px;color:#555}
+.preview-title{font-size:32px;font-weight:700}
+.preview-sub{font-size:20px;color:#555}
 .preview-note{font-size:11px;color:#666;text-align:right;max-width:260px;line-height:1.5}
 
 /* node boxes in editor */
@@ -194,6 +194,15 @@ function init(){
 // ═══════════════════════════════════════════════
 //  SAVE TO FILE  (File System Access API)
 // ═══════════════════════════════════════════════
+function makeFileName(sub){
+  let s = (sub||'').trim();
+  // ファイル名に使えない文字を除去・置換
+  s = s.replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,' ').trim();
+  if(!s) s = '連絡網';
+  if(s.includes('連絡網')) return `${s}.html`;
+  return `${s}_連絡網.html`;
+}
+
 async function saveToFile(){
   const data = {
     nodes, seq,
@@ -203,6 +212,7 @@ async function saveToFile(){
     email: document.getElementById('cfg-email').checked
   };
   const json = JSON.stringify(data);
+  const fileName = makeFileName(data.sub);
 
   // File System Access API が使えるか試みる
   if(window.showSaveFilePicker || window.__fileHandle){
@@ -210,7 +220,7 @@ async function saveToFile(){
       let handle = window.__fileHandle;
       if(!handle){
         handle = await window.showSaveFilePicker({
-          suggestedName: 'renrakumo.html',
+          suggestedName: fileName,
           types:[{description:'HTML',accept:{'text/html':['.html']}}]
         });
         window.__fileHandle = handle;
@@ -239,7 +249,7 @@ async function saveToFile(){
   const blob = new Blob([newHtml], {type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'renrakumo.html'; a.click();
+  a.href = url; a.download = fileName; a.click();
   URL.revokeObjectURL(url);
   setStatus('✓ ダウンロードして保存しました。次回このファイルを開いてください。');
 }
@@ -428,7 +438,7 @@ document.getElementById('tree-canvas').addEventListener('click',()=>{
 // ═══════════════════════════════════════════════
 //  SVG PRINT PREVIEW  ― 縦横線スタイル＋おしゃれ矩形
 // ═══════════════════════════════════════════════
-const BW=100, BH=52, HGAP=20, VGAP=40;
+const BW=110, BH=60, HGAP=20, VGAP=40;
 
 function treeW(t){ if(!t.children||!t.children.length)return 1; return t.children.reduce((s,c)=>s+treeW(c),0); }
 
@@ -493,13 +503,13 @@ function buildSVG(forest, showEmail){
     // text
     const hasEmail=showEmail&&n.email;
     const totalLines=1+(n.phone?1:0)+(hasEmail?1:0);
-    const lineH=14;
+    const lineH=16;
     const textBlockH=(totalLines-1)*lineH;
     const startY=by+accentH + (BH-accentH-textBlockH)/2 + 10;
 
-    boxes.push(`<text x="${cx}" y="${startY}" text-anchor="middle" font-size="12" font-weight="700" fill="#1a2a3a" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`);
-    if(n.phone) boxes.push(`<text x="${cx}" y="${startY+lineH}" text-anchor="middle" font-size="11" fill="#3a4e62" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`);
-    if(hasEmail) boxes.push(`<text x="${cx}" y="${startY+lineH*2}" text-anchor="middle" font-size="10" fill="#5a6e82" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`);
+    boxes.push(`<text x="${cx}" y="${startY}" text-anchor="middle" font-size="14" font-weight="700" fill="#1a2a3a" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.name||'—')}</text>`);
+    if(n.phone) boxes.push(`<text x="${cx}" y="${startY+lineH}" text-anchor="middle" font-size="13" fill="#3a4e62" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.phone)}</text>`);
+    if(hasEmail) boxes.push(`<text x="${cx}" y="${startY+lineH*2}" text-anchor="middle" font-size="11" fill="#5a6e82" font-family="'Hiragino Sans','Meiryo',sans-serif">${esc(n.email)}</text>`);
 
     (t.children||[]).forEach(c=>drawBoxes(c));
   }
@@ -536,7 +546,7 @@ function doPrint(){
   // A4横の印刷可能領域: 277mm x 190mm (margin 12mmで計算)
   // 96dpi換算: 277mm≈1047px, 190mm≈718px
   // ヘッダー高さ約42pxを引いた残りにツリーをフィット
-  const printW=1047, printH=718, headerH=48;
+  const printW=1047, printH=718, headerH=72;
   const availH=printH-headerH-16;
   const scaleX=printW/contentW, scaleY=availH/contentH;
   const scale=Math.min(scaleX,scaleY,1); // 拡大はしない、縮小のみ
@@ -551,8 +561,8 @@ function doPrint(){
 *{box-sizing:border-box}
 body{font-family:"Hiragino Sans","Meiryo",sans-serif;background:#fff;margin:0;padding:14px 18px}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;width:${printW}px}
-h1{font-size:16px;font-weight:700;margin-bottom:2px;color:#1a2a3a}
-.sub{font-size:13px;color:#4a5a6a}
+h1{font-size:32px;font-weight:700;margin-bottom:4px;color:#1a2a3a}
+.sub{font-size:20px;color:#4a5a6a}
 .note{font-size:11px;color:#6a7a8a;text-align:right;max-width:280px;line-height:1.6}
 .svg-center{width:${printW}px;display:flex;justify-content:center;align-items:flex-start}
 .svg-center svg{width:${scaledW}px;height:${scaledH}px}
