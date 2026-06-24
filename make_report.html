@@ -117,14 +117,8 @@ header p{
 .btn-mail{ background:#1a73e8; color:#fff; }
 .btn-mail:hover{ background:#1558b0; }
 
-/* メール転送ボタン：PCでは非表示、スマホでは表示 */
-@media (min-width:600px){
-  .btn-mail{ display:none; }
-}
-/* 印刷ボタン：スマホでは非表示 */
-@media (max-width:599px){
-  #btnPrint{ display:none; }
-}
+.btn-mail{ background:#1a73e8; color:#fff; }
+.btn-mail:hover{ background:#1558b0; }
 .toolbar .spacer{ flex:1; }
 .status{
   font-size:12.5px;
@@ -528,7 +522,7 @@ textarea{ resize:vertical; min-height:64px; }
 
 <div class="toolbar">
   <button class="btn btn-primary" id="btnSave" title="入力データとツール本体を含むHTMLファイルを書き出します。このファイルを開くと続きから編集できます。">💾 入力内容ごとファイルとして保存</button>
-  <button class="btn btn-secondary" id="btnPrint" class="hide-mobile">🖨️ 印刷する</button>
+  <button class="btn btn-secondary btn-print" id="btnPrint">🖨️ 印刷する</button>
   <button class="btn btn-mail" id="btnMail" title="入力内容をメール本文にして転送します">📧 メールで転送</button>
   <button class="btn btn-ghost" id="btnReset">🗑️ すべてクリア</button>
   <div class="spacer"></div>
