@@ -370,11 +370,12 @@ textarea{ resize:vertical; min-height:64px; }
   width:210mm;
   min-height:297mm;
   margin:0 auto;
-  padding:14mm 13mm;
+  padding:10mm 12mm 10mm;
   box-shadow:0 3px 14px rgba(0,0,0,.25);
-  font-size:11.5px;
+  font-size:12pt;
   color:#111;
   position:relative;
+  box-sizing:border-box;
 }
 .sheet, .sheet *{ font-family:"Hiragino Mincho ProN","Yu Mincho","MS PMincho",serif; }
 .sheet .title-line{
@@ -382,29 +383,29 @@ textarea{ resize:vertical; min-height:64px; }
   justify-content:space-between;
   align-items:baseline;
   margin-bottom:4px;
-  font-size:12.5px;
+  font-size:12pt;
 }
 .sheet .doc-title{
   text-align:center;
-  font-size:18px;
+  font-size:16pt;
   font-weight:700;
   letter-spacing:.5em;
-  margin:14px 0 14px;
+  margin:8px 0 10px;
 }
 .sheet .lead{
-  font-size:11px;
-  margin-bottom:10px;
+  font-size:11pt;
+  margin-bottom:8px;
 }
 .sheet table{
   width:100%;
   border-collapse:collapse;
-  margin-bottom:10px;
+  margin-bottom:8px;
 }
 .sheet table.report-table td, .sheet table.report-table th{
   border:1px solid #333;
-  padding:5px 7px;
+  padding:4px 7px;
   vertical-align:top;
-  font-size:11px;
+  font-size:12pt;
 }
 .sheet table.report-table th{
   background:#f1efe9;
@@ -412,14 +413,14 @@ textarea{ resize:vertical; min-height:64px; }
   white-space:nowrap;
   width:18%;
 }
-.sheet .pre-wrap{ white-space:pre-wrap; line-height:1.42; }
+.sheet .pre-wrap{ white-space:pre-wrap; line-height:1.5; }
 .sheet td.min-h-topic, .sheet td.min-h-names, .sheet td.min-h-req{
   position:relative;
   overflow:hidden;
 }
-.sheet .min-h-topic{ height:28mm; }
-.sheet .min-h-req{ height:26mm; }
-.sheet .min-h-names{ height:16mm; }
+.sheet .min-h-topic{ height:26mm; }
+.sheet .min-h-req{ height:24mm; }
+.sheet .min-h-names{ height:14mm; }
 .sheet .overflow-badge{
   position:absolute;
   bottom:2px;
@@ -438,8 +439,8 @@ textarea{ resize:vertical; min-height:64px; }
   display:flex;
   align-items:center;
   gap:6px;
-  margin:14px 0 10px;
-  font-size:10.5px;
+  margin:10px 0 8px;
+  font-size:10pt;
   color:#444;
 }
 .sheet .cut-line .dash{
@@ -448,15 +449,15 @@ textarea{ resize:vertical; min-height:64px; }
 }
 .sheet .claim-box{
   border:1px solid #333;
-  padding:10px 12px;
-  font-size:11.5px;
+  padding:8px 12px;
+  font-size:12pt;
 }
 .sheet .claim-line{
-  margin:6px 0;
+  margin:5px 0;
 }
 .sheet .claim-line-signature{
   text-align:right;
-  margin-top:10px;
+  margin-top:8px;
 }
 .sheet .seal-cell{
   display:inline-block;
@@ -467,20 +468,55 @@ textarea{ resize:vertical; min-height:64px; }
   line-height:34px;
   margin-left:6px;
   border-radius:50%;
-  font-size:10px;
+  font-size:10pt;
   vertical-align:middle;
 }
 .sheet .small-note{
-  font-size:9.5px;
+  font-size:9pt;
   color:#555;
-  margin-top:6px;
+  margin-top:4px;
 }
 .sheet .footer-note{
   position:absolute;
-  bottom:8mm;
-  right:13mm;
-  font-size:9px;
+  bottom:6mm;
+  right:12mm;
+  font-size:8pt;
   color:#777;
+}
+
+/* ===== 2ページ目（別紙）===== */
+.sheet-page2{
+  background:#fff;
+  width:210mm;
+  margin:12px auto 0;
+  padding:10mm 12mm;
+  box-shadow:0 3px 14px rgba(0,0,0,.25);
+  font-size:12pt;
+  color:#111;
+  box-sizing:border-box;
+  display:none;
+}
+.sheet-page2, .sheet-page2 *{ font-family:"Hiragino Mincho ProN","Yu Mincho","MS PMincho",serif; }
+.sheet-page2.show{ display:block; }
+.sheet-page2 .page2-title{
+  font-size:14pt;
+  font-weight:700;
+  border-bottom:2px solid #333;
+  padding-bottom:4px;
+  margin-bottom:10px;
+}
+.sheet-page2 .page2-sub{
+  font-size:11pt;
+  color:#444;
+  margin-bottom:8px;
+}
+.sheet-page2 .page2-body{
+  font-size:12pt;
+  white-space:pre-wrap;
+  line-height:1.8;
+  border:1px solid #ccc;
+  padding:8px 10px;
+  min-height:60mm;
 }
 .val{ font-weight:700; }
 .underline-val{
@@ -492,18 +528,28 @@ textarea{ resize:vertical; min-height:64px; }
 }
 
 @media print{
-  header, .toolbar, .pane-label, .form-pane, .preview-toggle-btn{ display:none !important; }
+  header, .toolbar, .info-note, .pane-label, .form-pane, .preview-toggle-btn{ display:none !important; }
   body{ background:#fff; }
   .wrap{ display:block; padding:0; max-width:none; }
-  .sheet-scroll{ background:#fff; padding:0; max-height:none; overflow:visible; }
+  .sheet-scroll{ background:#fff; padding:0; max-height:none; overflow:visible; border:none; }
   .preview-pane.collapsed .sheet-scroll{ display:block !important; }
   .sheet{
     box-shadow:none;
     margin:0;
-    width:auto;
+    width:100%;
     min-height:0;
+    padding:0;
+    page-break-after:always;
   }
-  @page{ size:A4; margin:10mm; }
+  .sheet-page2{
+    box-shadow:none;
+    margin:0;
+    width:100%;
+    padding:0;
+    page-break-before:always;
+  }
+  .sheet-page2.show{ display:block; }
+  @page{ size:A4; margin:12mm; }
 }
 </style>
 </head>
@@ -753,6 +799,19 @@ textarea{ resize:vertical; min-height:64px; }
 
         <div class="footer-note">新旭ヶ丘自治会　2026年6月改定版（HTML入力支援版）</div>
       </div>
+
+      <!-- ===== 2ページ目：要望事項等 別紙 ===== -->
+      <div class="sheet-page2" id="sheet2">
+        <div class="title-line" style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12pt;">
+          <div>新旭ケ丘自治会　様</div>
+          <div>第　<span id="p2_hanno"></span>　班　　班長：<span id="p2_hancho"></span></div>
+        </div>
+        <div class="page2-title">【別紙】自治会への報告および要望事項等（続き）</div>
+        <div class="page2-sub" id="p2_sub"></div>
+        <div class="page2-body" id="p2_requests"></div>
+        <div class="footer-note" style="position:static;text-align:right;font-size:8pt;color:#777;margin-top:8px;">新旭ヶ丘自治会　2026年6月改定版（HTML入力支援版）</div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -868,13 +927,40 @@ textarea{ resize:vertical; min-height:64px; }
     setText('p_attendees', el('attendeeCount').value);
     setText('p_others', el('otherAttendees').value);
 
-    // 議題・参加者名・要望
+    // 議題・参加者名
     setText('p_topics', el('topics').value);
     setText('p_names', el('attendeeNames').value);
-    setText('p_requests', el('requests').value);
     updateCharCounter('topics');
     updateCharCounter('attendeeNames');
     updateCharCounter('requests');
+
+    // 要望欄：200字超で1ページ目を省略、2ページ目に全文表示
+    const reqVal = el('requests').value;
+    const REQ_MAX = 200;
+    const reqOver = reqVal.length > REQ_MAX;
+    if(reqOver){
+      // 1ページ目：冒頭部分＋「→別紙へ続く」バッジ表示
+      const preview = reqVal.slice(0, REQ_MAX) + '…';
+      setText('p_requests', preview);
+      const badge = el('p_requests_overflow');
+      if(badge) badge.classList.add('show');
+
+      // 2ページ目を表示
+      const sheet2 = el('sheet2');
+      if(sheet2){
+        sheet2.classList.add('show');
+        el('p2_hanno').textContent = el('hanNo').value;
+        el('p2_hancho').textContent = el('hanchoName').value;
+        el('p2_sub').textContent = `（${reqVal.length}文字 / 本文全文を以下に記載します）`;
+        el('p2_requests').textContent = reqVal;
+      }
+    } else {
+      setText('p_requests', reqVal);
+      const badge = el('p_requests_overflow');
+      if(badge) badge.classList.remove('show');
+      const sheet2 = el('sheet2');
+      if(sheet2) sheet2.classList.remove('show');
+    }
 
     // 請求欄（参加人数は報告書の「参加者数」と連動。二重入力はしない）
     const claimHanNo = el('claimHanNo').value || el('hanNo').value;
