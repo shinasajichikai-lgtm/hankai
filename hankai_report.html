@@ -304,6 +304,7 @@ textarea{ resize:vertical; min-height:64px; }
   color:var(--ink);
   text-align:center;
 }
+.inline-unit .synced-value{ flex:1; min-width:0; }
 .amount-warning{
   font-size:13px;
   font-weight:700;
@@ -684,7 +685,8 @@ textarea{ resize:vertical; min-height:64px; }
       <div class="field-row">
         <div class="field narrow">
           <label>第〇班</label>
-          <div class="inline-unit"><span>第</span><input type="text" id="claimHanNo" placeholder="同上"><span>班</span></div>
+          <div class="inline-unit"><span>第</span><div class="synced-value" id="claimHanNoDisplay">未設定</div><span>班</span></div>
+          <div class="hint">↑「基本情報」の班番号と連動します</div>
         </div>
         <div class="field">
           <label>請求日</label>
@@ -828,7 +830,7 @@ textarea{ resize:vertical; min-height:64px; }
     'meetingDate','meetingWeekday','startHour','startMin','endHour','endMin','place',
     'memberHouses','attendeeCount','otherAttendees',
     'topics','attendeeNames','requests',
-    'claimHanNo','claimDate','claimAmount','claimHanchoName'
+    'claimDate','claimAmount','claimHanchoName'
   ];
 
   const WEEKDAY_JP = ['日','月','火','水','木','金','土'];
@@ -974,9 +976,11 @@ textarea{ resize:vertical; min-height:64px; }
       if(sheet2) sheet2.classList.remove('show');
     }
 
-    // 請求欄（参加人数は報告書の「参加者数」と連動。二重入力はしない）
-    const claimHanNo = el('claimHanNo').value || el('hanNo').value;
+    // 請求欄（班番号・参加人数は、いずれも基本情報・参加者数の欄と連動。二重入力はしない）
+    const claimHanNo = el('hanNo').value;
     setText('p_claim_hanno', claimHanNo);
+    const claimHanNoDisplay = el('claimHanNoDisplay');
+    if(claimHanNoDisplay){ claimHanNoDisplay.textContent = (claimHanNo === '' ? '未設定' : claimHanNo); }
 
     const cWareki = getWarekiYear(el('claimDate').value);
     const cMD = getMonthDay(el('claimDate').value);
